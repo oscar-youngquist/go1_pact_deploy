@@ -1,14 +1,27 @@
 #pragma once
 
+#include <algorithm>
+#include <array>
 #include <cmath>
 #include "../3rd_parties/unitree_legged_sdk/include/unitree_legged_sdk/joystick.h"
 
-float deadband(float command, float minVal, float maxVal, float deadbandRegion) {
+inline float deadband(float command, float minVal, float maxVal, float deadbandRegion) {
   if (command < deadbandRegion && command > -deadbandRegion) {
     return 0.0;
   } else {
     return (command / (2)) * (maxVal - minVal);
   }
+}
+
+inline float remapSymmetricAxis(float raw_command, float deadband_region, float max_abs_value) {
+  const float abs_command = std::fabs(raw_command);
+  if (abs_command < deadband_region) {
+    return 0.0f;
+  }
+
+  const float normalized =
+      std::clamp((abs_command - deadband_region) / (1.0f - deadband_region), 0.0f, 1.0f);
+  return std::copysign(normalized * max_abs_value, raw_command);
 }
 
 class Button
@@ -22,8 +35,9 @@ public:
         on_release = state ? false : state != pressed;
         pressed = state;
     }
-    bool pressed = false;
-    bool on_press = false;
+
+    bool pressed = false;    // pressed会持续
+    bool on_press = false;   // on_press和on_release都是一瞬间
     bool on_release = false;
 };
 
@@ -32,13 +46,18 @@ class Gamepad
 public:
     Gamepad() {}
 
+    void setCommandLimits(const std::array<float, 3>& limits)
+    {
+        command_limits = limits;
+    }
+
     void update(xRockerBtnDataStruct &key_data)
     {
-        lx = lx * (1 - smooth) + (std::fabs(key_data.lx) < dead_zone ? 0.0 : key_data.lx) * smooth;
-        rx = rx * (1 - smooth) + (std::fabs(key_data.rx) < dead_zone ? 0.0 : key_data.rx) * smooth;
+        lx = lx * (1 - smooth) + remapSymmetricAxis(key_data.lx, dead_zone, command_limits[1]) * smooth;
+        rx = rx * (1 - smooth) + remapSymmetricAxis(key_data.rx, dead_zone, command_limits[2]) * smooth;
         ry = ry * (1 - smooth) + (std::fabs(key_data.ry) < dead_zone ? 0.0 : key_data.ry) * smooth;
         l2 = l2 * (1 - smooth) + (std::fabs(key_data.L2) < dead_zone ? 0.0 : key_data.L2) * smooth;
-        ly = ly * (1 - smooth) + (std::fabs(key_data.ly) < dead_zone ? 0.0 : key_data.ly) * smooth;
+        ly = ly * (1 - smooth) + remapSymmetricAxis(key_data.ly, dead_zone, command_limits[0]) * smooth;
 
         if (std::fabs(lx) < dead_zone)
         {
@@ -52,8 +71,6 @@ public:
         {
           rx = 0.0;
         }
-
-
 
         R1.update(key_data.btn.components.R1);
         L1.update(key_data.btn.components.L1);
@@ -79,8 +96,9 @@ public:
     float l2 = 0.;
     float ly = 0.;
 
-    float smooth = 0.02;
+    float smooth = 0.03;
     float dead_zone = 0.01;
+    std::array<float, 3> command_limits = {1.0f, 0.5f, 1.0f};
 
     Button R1;
     Button L1;

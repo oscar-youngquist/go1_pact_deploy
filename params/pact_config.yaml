@@ -1,5 +1,8 @@
 # policy_name: "May11_21-55-58_pact_100hz_spec_smartcurr_best.pt"
-policy_name: "May11_22-58-46_pact_100hz_spec_smartcurr_stricter_best.pt"
+policy_name: "May17_21-01-03_pact_100hz_spec_smartcurr_lower_jointrand_hightau.pt"
+
+use_kalman_filter: 1
+command_limit_max_abs: [1.0, 1.0, 1.0]
 
 dt: 0.01
 
