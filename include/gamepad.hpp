@@ -1,0 +1,102 @@
+#pragma once
+
+#include <cmath>
+#include "../3rd_parties/unitree_legged_sdk/include/unitree_legged_sdk/joystick.h"
+
+float deadband(float command, float minVal, float maxVal, float deadbandRegion) {
+  if (command < deadbandRegion && command > -deadbandRegion) {
+    return 0.0;
+  } else {
+    return (command / (2)) * (maxVal - minVal);
+  }
+}
+
+class Button
+{
+public:
+    Button() {}
+
+    void update(bool state)
+    {
+        on_press = state ? state != pressed : false;
+        on_release = state ? false : state != pressed;
+        pressed = state;
+    }
+
+    bool pressed = false;    // pressed会持续
+    bool on_press = false;   // on_press和on_release都是一瞬间
+    bool on_release = false;
+};
+
+class Gamepad
+{
+public:
+    Gamepad() {}
+
+    void update(xRockerBtnDataStruct &key_data)
+    {
+        lx = lx * (1 - smooth) + (std::fabs(key_data.lx) < dead_zone ? 0.0 : key_data.lx) * smooth;
+        rx = rx * (1 - smooth) + (std::fabs(key_data.rx) < dead_zone ? 0.0 : key_data.rx) * smooth;
+        ry = ry * (1 - smooth) + (std::fabs(key_data.ry) < dead_zone ? 0.0 : key_data.ry) * smooth;
+        l2 = l2 * (1 - smooth) + (std::fabs(key_data.L2) < dead_zone ? 0.0 : key_data.L2) * smooth;
+        ly = ly * (1 - smooth) + (std::fabs(key_data.ly) < dead_zone ? 0.0 : key_data.ly) * smooth;
+
+        if (std::fabs(lx) < dead_zone)
+        {
+          lx = 0.0;
+        }
+        if (std::fabs(ly) < dead_zone)
+        {
+          ly = 0.0;
+        }
+        if (std::fabs(rx) < dead_zone)
+        {
+          rx = 0.0;
+        }
+
+
+
+        R1.update(key_data.btn.components.R1);
+        L1.update(key_data.btn.components.L1);
+        start.update(key_data.btn.components.start);
+        select.update(key_data.btn.components.select);
+        R2.update(key_data.btn.components.R2);
+        L2.update(key_data.btn.components.L2);
+        F1.update(key_data.btn.components.F1);
+        F2.update(key_data.btn.components.F2);
+        A.update(key_data.btn.components.A);
+        B.update(key_data.btn.components.B);
+        X.update(key_data.btn.components.X);
+        Y.update(key_data.btn.components.Y);
+        up.update(key_data.btn.components.up);
+        right.update(key_data.btn.components.right);
+        down.update(key_data.btn.components.down);
+        left.update(key_data.btn.components.left);
+    }
+
+    float lx = 0.;
+    float rx = 0.;
+    float ry = 0.;
+    float l2 = 0.;
+    float ly = 0.;
+
+    float smooth = 0.03;
+    float dead_zone = 0.01;
+
+    Button R1;
+    Button L1;
+    Button start;
+    Button select;
+    Button R2;
+    Button L2;
+    Button F1;
+    Button F2;
+    Button A;
+    Button B;
+    Button X;
+    Button Y;
+    Button up;
+    Button right;
+    Button down;
+    Button left;
+};
