@@ -22,9 +22,11 @@ int main(int argc, char** argv)
 {
   std::cout << "MAde it past the start of main!" << std::endl;
   
-  std::string param_folder = "../params";
+  std::string param_folder = "../go1_pact_deploy/params";
   fs::path param = fs::current_path() / param_folder;
   std::string config_file_path = param / "pact_config.yaml";
+
+  std::cout << config_file_path.c_str() << std::endl;
 
   HardwareBridge* hardware_bridge = new HardwareBridge(config_file_path);
 

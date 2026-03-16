@@ -140,6 +140,7 @@ public:
             history_obs.at(i) = single_step_obs;
         }
     }
+    
     void loadPolicy()
     {
         fs::path model_path = fs::current_path() / "../models";
@@ -148,6 +149,11 @@ public:
         std::cout << "Load policy from: " << model_path / policy_name << std::endl;
     }
     
+    float getCtrlDT()
+    {
+        return dt;
+    }
+
     void reset(BasicRobotInterface &robot_interface, Gamepad &gamepad)
     {
         // reset history observation buffer
