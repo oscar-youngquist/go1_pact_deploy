@@ -93,7 +93,7 @@ class PACTMJSimulationBridge: public MujocoSimulationBridge{
 
     virtual void _UpdateSystemObserver();
     virtual void _UpdateControlCommand();
-    virtual void _RenderCameraData();
+    virtual void _RenderCameraData() override {}
     virtual void _ApplyExternalForces();
     virtual void _onestep_forward();
 

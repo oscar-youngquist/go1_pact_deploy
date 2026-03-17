@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <iostream>
-#include <yaml-cpp/yaml.h>
+#include <daros_yaml-cpp/yaml.h>
 
 class BaseCfg
 {
@@ -16,7 +16,7 @@ class PACTRLCfg : public BaseCfg
 public:
     PACTRLCfg(const std::string &filename) : BaseCfg(filename)
     {
-        auto cfg = YAML::LoadFile(filename);
+        auto cfg = daros_YAML::LoadFile(filename);
         try
         {
             policy_name = cfg["policy_name"].as<std::string>();

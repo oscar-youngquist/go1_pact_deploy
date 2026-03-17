@@ -3,7 +3,7 @@
 #include <cmath>
 #include "../3rd_parties/unitree_legged_sdk/include/unitree_legged_sdk/joystick.h"
 
-float deadband(float command, float minVal, float maxVal, float deadbandRegion) {
+inline float deadband(float command, float minVal, float maxVal, float deadbandRegion) {
   if (command < deadbandRegion && command > -deadbandRegion) {
     return 0.0;
   } else {

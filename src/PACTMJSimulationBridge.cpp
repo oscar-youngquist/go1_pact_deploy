@@ -1,6 +1,6 @@
+#include <ParamHandler/ParamHandler.hpp>
 #include "PACTMJSimulationBridge.hpp"
 #include <Configuration.h>
-#include <ParamHandler/ParamHandler.hpp>
 #include "utilities.h"
 #include <orientation_tools.h>
 

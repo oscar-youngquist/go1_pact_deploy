@@ -19,7 +19,7 @@ namespace fs = std::filesystem;
 using namespace std;
 using namespace UNITREE_LEGGED_SDK;
 
-float clip(float value, float low_limit, float high_limit)
+inline float clip(float value, float low_limit, float high_limit)
 {
     if(value <= low_limit) return low_limit;
     if(value >= high_limit) return high_limit;
