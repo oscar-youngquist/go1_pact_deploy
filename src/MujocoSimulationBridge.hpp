@@ -93,31 +93,31 @@ protected:
   virtual float _getCtrlDt() = 0;
   virtual void _runCtrl() = 0;
 
-  virtual void _LeftKeyAction(){}
-  virtual void _RightKeyAction(){}
-  virtual void _UpKeyAction(){}
-  virtual void _DownKeyAction(){}
-  virtual void _A_KeyAction(){}
-  virtual void _D_KeyAction(){}
-  virtual void _W_KeyAction(){}
-  virtual void _S_KeyAction(){}
-  virtual void _Comma_KeyAction(){}
-  virtual void _Slash_KeyAction(){}
+  // virtual void _LeftKeyAction(){}
+  // virtual void _RightKeyAction(){}
+  // virtual void _UpKeyAction(){}
+  // virtual void _DownKeyAction(){}
+  // virtual void _A_KeyAction(){}
+  // virtual void _D_KeyAction(){}
+  // virtual void _W_KeyAction(){}
+  // virtual void _S_KeyAction(){}
+  // virtual void _Comma_KeyAction(){}
+  // virtual void _Slash_KeyAction(){}
 
-  virtual void _Y_KeyAction(){}
-  virtual void _U_KeyAction(){}
-  virtual void _K_KeyAction(){}
+  // virtual void _Y_KeyAction(){}
+  // virtual void _U_KeyAction(){}
+  // virtual void _K_KeyAction(){}
 
   virtual void _Z_KeyAction(){}
   virtual void _X_KeyAction(){}
 
-  // Used for user-input styel control (replicating simialr behavior to the Unity simulation)
-  virtual void _LeftKeyRelease(){}
-  virtual void _RightKeyRelease(){}
-  virtual void _UpKeyRelease(){}
-  virtual void _DownKeyRelease(){}
-  virtual void _Comma_KeyRelease(){}
-  virtual void _Slash_KeyRelease(){}
+  // // Used for user-input styel control (replicating simialr behavior to the Unity simulation)
+  // virtual void _LeftKeyRelease(){}
+  // virtual void _RightKeyRelease(){}
+  // virtual void _UpKeyRelease(){}
+  // virtual void _DownKeyRelease(){}
+  // virtual void _Comma_KeyRelease(){}
+  // virtual void _Slash_KeyRelease(){}
 
   double _ctrl_time = 0.0;
 

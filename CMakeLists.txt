@@ -24,11 +24,15 @@ find_package(glfw3 REQUIRED)
 set(headers
     ${CMAKE_CURRENT_SOURCE_DIR}/src/HardwareBridge.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/MujocoSimulationBridge.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/joystick/joystick.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/PACTMJSimulationBridge.hpp
 )
 
 set(sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/HardwareBridge.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/MujocoSimulationBridge.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/joystick/joystick.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/PACTMJSimulationBridge.cpp
 )
 
 add_library(go1_system SHARED ${headers} ${sources})
@@ -59,3 +63,15 @@ target_link_libraries(pact_deploy
         yaml-cpp
         Threads::Threads
 )
+
+add_executable(pact_sim src/main_sim.cpp)
+
+target_link_libraries(pact_sim
+    PRIVATE
+        go1_system
+        ${UNITREE_SDK_LIB}
+        yaml-cpp
+        Threads::Threads
+)
+
+add_executable(jstest src/joystick/jstest.cc src/joystick/joystick.cc)

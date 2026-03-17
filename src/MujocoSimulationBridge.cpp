@@ -311,105 +311,105 @@ void MujocoSimulationBridge::keyCallback(GLFWwindow *window, int key, int scanco
     // switch between play and pause
     instance->_b_play = !(instance->_b_play);
   }
-  if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_LeftKeyAction();
-  }
-  if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_RightKeyAction();
-  }
-  if (key == GLFW_KEY_UP && action == GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_UpKeyAction();
-  }
-  if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_DownKeyAction();
-  }
-  if (key==GLFW_KEY_A && action==GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_A_KeyAction();
-  }
-  if (key==GLFW_KEY_D && action==GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_D_KeyAction();
-  }
-  if (key==GLFW_KEY_W && action==GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_W_KeyAction();
-  }
-  if (key==GLFW_KEY_S && action==GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_S_KeyAction();
-  }
-  if (key==GLFW_KEY_COMMA && action==GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_Comma_KeyAction();
-  }
-  if (key==GLFW_KEY_SLASH && action==GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_Slash_KeyAction();
-  }
+  // if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_LeftKeyAction();
+  // }
+  // if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_RightKeyAction();
+  // }
+  // if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_UpKeyAction();
+  // }
+  // if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_DownKeyAction();
+  // }
+  // if (key==GLFW_KEY_A && action==GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_A_KeyAction();
+  // }
+  // if (key==GLFW_KEY_D && action==GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_D_KeyAction();
+  // }
+  // if (key==GLFW_KEY_W && action==GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_W_KeyAction();
+  // }
+  // if (key==GLFW_KEY_S && action==GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_S_KeyAction();
+  // }
+  // if (key==GLFW_KEY_COMMA && action==GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_Comma_KeyAction();
+  // }
+  // if (key==GLFW_KEY_SLASH && action==GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_Slash_KeyAction();
+  // }
 
-  // Used to zero-out keyboard input upcon control key release
-  if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_LeftKeyRelease();
-  }
-  if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_RightKeyRelease();
-  }
-  if (key == GLFW_KEY_UP && action == GLFW_RELEASE)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_UpKeyRelease();
-  }
-  if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_DownKeyRelease();
-  }
-  if (key==GLFW_KEY_COMMA && action==GLFW_RELEASE)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_Comma_KeyRelease();
-  }
-  if (key==GLFW_KEY_SLASH && action==GLFW_RELEASE)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_Slash_KeyRelease();
-  }
+  // // Used to zero-out keyboard input upcon control key release
+  // if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_LeftKeyRelease();
+  // }
+  // if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_RightKeyRelease();
+  // }
+  // if (key == GLFW_KEY_UP && action == GLFW_RELEASE)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_UpKeyRelease();
+  // }
+  // if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_DownKeyRelease();
+  // }
+  // if (key==GLFW_KEY_COMMA && action==GLFW_RELEASE)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_Comma_KeyRelease();
+  // }
+  // if (key==GLFW_KEY_SLASH && action==GLFW_RELEASE)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_Slash_KeyRelease();
+  // }
 
-  if (key==GLFW_KEY_K && action==GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_K_KeyAction();
-  }
+  // if (key==GLFW_KEY_K && action==GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_K_KeyAction();
+  // }
   
-  if (key==GLFW_KEY_Y && action==GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_Y_KeyAction();
-  }
-  if (key==GLFW_KEY_U && action==GLFW_PRESS)
-  {
-    MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
-    instance->_U_KeyAction();
-  }
+  // if (key==GLFW_KEY_Y && action==GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_Y_KeyAction();
+  // }
+  // if (key==GLFW_KEY_U && action==GLFW_PRESS)
+  // {
+  //   MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
+  //   instance->_U_KeyAction();
+  // }
   if (key==GLFW_KEY_Z && action==GLFW_PRESS)
   {
     MujocoSimulationBridge *instance = static_cast<MujocoSimulationBridge *>(glfwGetWindowUserPointer(window));
