@@ -7,7 +7,7 @@
 
 using namespace std;
 
-PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_file, std::string ctrl_config_file) : MujocoSimulationBridge(sim_config_file)
+PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_file, const std::string& ctrl_config_file) : MujocoSimulationBridge(sim_config_file)
 {
     _ReadConfig(sim_config_file);
 

@@ -26,7 +26,7 @@ using namespace UNITREE_LEGGED_SDK;
 class HardwareBridge
 {
     public:
-        HardwareBridge(std::string config_file_path);
+        HardwareBridge(const std::string& config_file_path);
         void UDPRecv();
         void UDPSend();
         void RobotControl();

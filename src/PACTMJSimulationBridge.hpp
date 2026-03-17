@@ -1,7 +1,7 @@
 #ifndef __PACT_MJ_SIMULATION_BRIDGE_H__
 #define __PACT_MJ_SIMULATION_BRIDGE_H__
 
-#include <MujocoSimulationBridge.hpp>
+#include "MujocoSimulationBridge.hpp"
 #include <math.h>
 #include <iostream>
 #include <stdint.h>
@@ -26,7 +26,7 @@ using namespace UNITREE_LEGGED_SDK;
 
 class PACTMJSimulationBridge: public MujocoSimulationBridge{
   public:
-    PACTMJSimulationBridge(const std::string & config_file, std::string ctrl_config_file);
+    PACTMJSimulationBridge(const std::string & config_file, const std::string& ctrl_config_file);
     virtual ~PACTMJSimulationBridge(){}
 
     // virtual void _UpKeyAction();
@@ -102,7 +102,7 @@ class PACTMJSimulationBridge: public MujocoSimulationBridge{
 
     void _UpdateIMUData();
     void _UpdateTouchData();
-    void _ReadConfig(const std::string & file_name);
+    void _ReadConfig(const std::string& config_file);
     bool _CollisionChecking();
     
     void _ApplyDebuggingExternalForces();

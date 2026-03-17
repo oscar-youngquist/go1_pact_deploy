@@ -26,7 +26,7 @@ Joystick::Joystick(int joystickNumber)
   openPath(sstm.str());
 }
 
-Joystick::Joystick(std::string devicePath)
+Joystick::Joystick(const std::string& devicePath)
 {
   openPath(devicePath);
 }
@@ -36,7 +36,7 @@ Joystick::Joystick(std::string devicePath, bool blocking)
   openPath(devicePath, blocking);
 }
 
-void Joystick::openPath(std::string devicePath, bool blocking)
+void Joystick::openPath(const std::string& devicePath, bool blocking)
 {
   // Open the device using either blocking or non-blocking
   _fd = open(devicePath.c_str(), blocking ? O_RDONLY : O_RDONLY | O_NONBLOCK);

@@ -4,7 +4,7 @@
 using namespace std;
 using namespace UNITREE_LEGGED_SDK;
 
-HardwareBridge::HardwareBridge(std::string config_file_path):
+HardwareBridge::HardwareBridge(const std::string& config_file_path):
 _safe(LeggedType::Go1),
 _udp(LOWLEVEL, 8090, "192.168.123.10", 8007)
 {
@@ -225,7 +225,7 @@ void HardwareBridge::run(){
     // Start control loop
     loop_control.start();
 
-    while(1){
+    while(true){
         sleep(1);
     };
 }
@@ -318,4 +318,3 @@ void HardwareBridge::UserControlStep(bool send_cmd)
     // _robot_interface.tau_ff.fill(0.0);
     // _robot_interface.jvel_des.fill(0.0);
 }
-

@@ -104,7 +104,7 @@ std::ostream &operator<<(std::ostream &os, const JoystickEvent &e);
 class Joystick
 {
 private:
-  void openPath(std::string devicePath, bool blocking = false);
+  void openPath(const std::string& devicePath, bool blocking = false);
   int _fd;
 
 public:
@@ -124,7 +124,7 @@ public:
   /**
    * Initialises an instance for the joystick device specified.
    */
-  Joystick(std::string devicePath);
+  Joystick(const std::string& devicePath);
 
   /**
    * Joystick objects cannot be copied
