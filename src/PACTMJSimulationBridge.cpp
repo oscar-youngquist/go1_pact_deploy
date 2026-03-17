@@ -171,13 +171,13 @@ void PACTMJSimulationBridge::_UpdateControlCommand()
     DVec<float> jpos(_num_acts);
     DVec<float> jvel(_num_acts);
 
-    for (size_t i(0); i < _num_acts; ++i)
+    for (int i = 0; i < _num_acts; ++i)
     {
         jpos[i] = static_cast<float>(_mjData->qpos[i + 7]);
         jvel[i] = static_cast<float>(_mjData->qvel[i + 6]);
     }
 
-    for (size_t i(0); i < _num_acts; ++i)
+    for (int i = 0; i < _num_acts; ++i)
     {
         _j_cmd[i] = _robot_interface.jpos_des.at(i);
         _tau_cmd[i] = _robot_interface.tau_ff.at(i);
@@ -187,7 +187,7 @@ void PACTMJSimulationBridge::_UpdateControlCommand()
     // std::cout << "_j_cmd -> " << _j_cmd.transpose() << std::endl;
     // std::cout << "_tau_cmd -> " << _tau_cmd.transpose() << std::endl;
 
-    for (size_t i(0); i < _num_acts; ++i)
+    for (int i = 0; i < _num_acts; ++i)
     {
         _mjData->ctrl[i] = jtorque_output[i];
     }

@@ -115,12 +115,10 @@ private:
         float y2 = y * y;
         float z2 = z * z;
         float w2 = w * w;
-        float xy = x * y;
         float xz = x * z;
         float yz = y * z;
         float wx = w * x;
         float wy = w * y;
-        float wz = w * z;
 
         projected_gravity.at(0) = -2 * (xz + wy);
         projected_gravity.at(1) = -2 * (yz - wx);

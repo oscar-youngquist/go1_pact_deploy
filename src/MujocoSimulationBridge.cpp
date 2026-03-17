@@ -261,7 +261,7 @@ void MujocoSimulationBridge::handleMouseMovement(GLFWwindow *window, double xpos
   glfwGetWindowSize(window, &width, &height);
 
   // Determine action based on the mouse button pressed
-  mjtMouse action;
+  mjtMouse action = mjMOUSE_MOVE_H;
   if (button_right)
   {
     action = mjMOUSE_MOVE_V; // Vertical pan when right button is pressed

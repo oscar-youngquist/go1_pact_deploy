@@ -63,7 +63,7 @@ class VisualGeomManager {
         mjvGeom* new_geom = mj_scene.geoms + mj_scene.ngeom++;
 
         // Initialize the new geom, otherwise it will appear white
-        mjv_initGeom(new_geom, NULL, NULL, NULL, NULL, NULL);
+        mjv_initGeom(new_geom, mjGEOM_SPHERE, nullptr, nullptr, nullptr, nullptr);
         new_geom->type = geom->_type;
         std::copy(geom->_size.data(), geom->_size.data() + 3, new_geom->size);
         std::copy(geom->_pos.data(), geom->_pos.data() + 3, new_geom->pos);

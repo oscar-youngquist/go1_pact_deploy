@@ -237,8 +237,8 @@ public:
         torch::Tensor obs_tensor = torch::zeros({1, num_single_obs});
         for(int i = 0; i < num_single_obs; i++)
             obs_tensor[0][i] = single_step_obs.at(i);
-        
-            torch::Tensor obs_his_tensor = torch::zeros({1, frame_stack*num_single_obs});
+
+        torch::Tensor obs_his_tensor = torch::zeros({1, frame_stack*num_single_obs});
         for(int i = 0; i < frame_stack; ++i)
         {
             for(int j = 0; j < num_single_obs; ++j)
