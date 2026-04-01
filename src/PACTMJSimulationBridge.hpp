@@ -19,6 +19,7 @@
 #include "pact_controller.hpp"
 #include "state_machine.hpp"
 #include "physics_joystick.h"
+#include "pos_controller.hpp"
 
 using namespace std;
 using namespace UNITREE_LEGGED_SDK;
@@ -26,7 +27,7 @@ using namespace UNITREE_LEGGED_SDK;
 
 class PACTMJSimulationBridge: public MujocoSimulationBridge{
   public:
-    PACTMJSimulationBridge(const std::string & config_file, const std::string& ctrl_config_file);
+    PACTMJSimulationBridge(const std::string & config_file);
     virtual ~PACTMJSimulationBridge(){}
 
     // virtual void _UpKeyAction();
@@ -137,6 +138,9 @@ class PACTMJSimulationBridge: public MujocoSimulationBridge{
 
     // Device path
     std::string _js_device;
+    std::string _ctrl_type;
+
+    std::string _config_file;
 
     bool _updated_command = false;
     bool _not_started = true;

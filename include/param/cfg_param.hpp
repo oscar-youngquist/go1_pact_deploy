@@ -115,6 +115,8 @@ public:
             ctrl_kd  = cfg["ctrl_kd"].as<float>();
             
             action_scale = cfg["action_scale"].as<float>();
+
+            tau_scale = cfg["tau_scale"].as<float>();
             
             lin_vel_scale = cfg["lin_vel_scale"].as<float>();
             ang_vel_scale = cfg["ang_vel_scale"].as<float>();
@@ -173,6 +175,7 @@ public:
     float clip_obs;
     float ema_alpha_pos;
     float ema_alpha_tau;
+    float tau_scale;
     int num_single_obs;
     int frame_stack;
     std::string policy_name;

@@ -7,13 +7,25 @@
 
 using namespace std;
 
-PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_file, const std::string& ctrl_config_file) : MujocoSimulationBridge(sim_config_file)
+PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_file) : MujocoSimulationBridge(sim_config_file)
 {
     _ReadConfig(sim_config_file);
 
     _joystick = std::make_unique<XBoxJoystick>(_js_device);
 
-    _ctrl = new PACTController(ctrl_config_file);
+    std::string param_folder = THIS_COM"go1_pact_deploy/params";
+    fs::path param = fs::current_path() / param_folder;
+    std::string ctrl_config_file_path = param / _config_file;
+
+
+    if (_ctrl_type == "pact")
+    { 
+        _ctrl = new PACTController(ctrl_config_file_path);
+    }
+    else 
+    {
+        _ctrl = new PosController(ctrl_config_file_path);
+    }
 
     // run simulation before run controller
     _ctrl_time += _getCtrlDt();
@@ -122,11 +134,11 @@ void PACTMJSimulationBridge::_UpdateIMUData()
         const double *gyro_data = _mjData->sensordata + _mjModel->sensor_adr[gyro_sensor_id];
         for (int i(0); i < 3; i++)
         {
-            // _state.imu.gyroscope[i] = gyro_data[i];
-            _state.imu.gyroscope[i] = _mjData->qvel[i+3];
+            _state.imu.gyroscope[i] = gyro_data[i];
+            // _state.imu.gyroscope[i] = _mjData->qvel[i+3];
         }
-        // printf("gyro_data: %f, %f, %f\n", gyro_data[0], gyro_data[1], gyro_data[2]);
-        printf("gyro_data: %f, %f, %f\n", _mjData->qvel[3], _mjData->qvel[4], _mjData->qvel[5]);
+        printf("gyro_data: %f, %f, %f\n", gyro_data[0], gyro_data[1], gyro_data[2]);
+        // printf("gyro_data: %f, %f, %f\n", _mjData->qvel[3], _mjData->qvel[4], _mjData->qvel[5]);
     }
 
     // Access quaternion
@@ -175,11 +187,22 @@ void PACTMJSimulationBridge::_UpdateControlCommand()
         jvel[i] = static_cast<float>(_mjData->qvel[i + 6]);
     }
 
-    for (int i = 0; i < _num_acts; ++i)
+    if (_ctrl_type == "pact")
     {
-        _j_cmd[i] = _robot_interface.jpos_des.at(i);
-        _tau_cmd[i] = _robot_interface.tau_ff.at(i);
-        jtorque_output[i] = _tau_cmd[i] + _robot_interface.kp.at(i)*(_j_cmd[i] - jpos[i]) - _robot_interface.kd.at(i) * jvel[i];
+        for (int i = 0; i < _num_acts; ++i)
+        {
+            _j_cmd[i] = _robot_interface.jpos_des.at(i);
+            _tau_cmd[i] = _robot_interface.tau_ff.at(i);
+            jtorque_output[i] = _tau_cmd[i] + _robot_interface.kp.at(i)*(_j_cmd[i] - jpos[i]) - _robot_interface.kd.at(i) * jvel[i];
+        }
+    }
+    else
+    {
+        for (int i = 0; i < _num_acts; ++i)
+        {
+            _j_cmd[i] = _robot_interface.jpos_des.at(i);
+            jtorque_output[i] = _robot_interface.kp.at(i)*(_j_cmd[i] - jpos[i]) - _robot_interface.kd.at(i) * jvel[i];
+        }
     }
 
     std::cout << "_j_cmd -> " << _j_cmd.transpose() << std::endl;
@@ -424,6 +447,8 @@ void PACTMJSimulationBridge::_ReadConfig(const std::string &config_file)
     handler.getInteger("num_joints", _num_acts);
     handler.getValue("pd_timestep", _pd_dt);
     handler.getString("js_device", _js_device);
+    handler.getString("ctrl_type", _ctrl_type);
+    handler.getString("ctrl_config_file", _config_file);
 }
 
 void PACTMJSimulationBridge::InteprateGamePad()
