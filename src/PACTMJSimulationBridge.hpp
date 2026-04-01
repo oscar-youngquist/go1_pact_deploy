@@ -139,6 +139,7 @@ class PACTMJSimulationBridge: public MujocoSimulationBridge{
     std::string _js_device;
 
     bool _updated_command = false;
+    bool _not_started = true;
 };
 
 #endif

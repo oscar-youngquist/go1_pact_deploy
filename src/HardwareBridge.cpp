@@ -295,7 +295,7 @@ void HardwareBridge::Sitting()
 
 void HardwareBridge::Standing()
 {
-    _ctrl->DummyCalculate(); // warmup the neural network
+    // _ctrl->DummyCalculate(); // warmup the neural network
     _state_machine.Standing(*_ctrl);
     _robot_interface.jpos_des = _ctrl->jpos_des;
 }

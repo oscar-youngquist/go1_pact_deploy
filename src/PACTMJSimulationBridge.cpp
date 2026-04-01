@@ -36,10 +36,6 @@ PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_fil
     _ctrl->loadPolicy();
 
     printf("[Summer Mujoco Simulation Bridge] Constructed\n");
-
-    // Run a _ctrl bootup routine
-    //    waits for user-input before starting control + senters damping state
-    StartControl();
 }
 
 void PACTMJSimulationBridge::_onestep_forward()
@@ -57,9 +53,9 @@ void PACTMJSimulationBridge::_onestep_forward()
         {
             _updated_command = true;
         }
-        // std::cout << "stepping ctrl" << std::endl;
-        // std::cout << "_mjData->time: " << _mjData->time << std::endl;
-        // std::cout << "_ctrl_time: " << _ctrl_time << std::endl;
+        std::cout << "stepping ctrl" << std::endl;
+        std::cout << "_mjData->time: " << _mjData->time << std::endl;
+        std::cout << "_ctrl_time: " << _ctrl_time << std::endl;
     }
 
     if (_mjData->time >= _pd_time && _updated_command)
@@ -117,7 +113,7 @@ void PACTMJSimulationBridge::_UpdateIMUData()
         {
             _state.imu.accelerometer[i] = acc_data[i];
         }
-        // printf("acc_sensor_id: %d, gyro_sensor_id: %d\n", acc_sensor_id, gyro_sensor_id);
+        printf("acc_sensor_id: %d, gyro_sensor_id: %d\n", acc_sensor_id, gyro_sensor_id);
     }
 
     // Access gyro data
@@ -126,9 +122,11 @@ void PACTMJSimulationBridge::_UpdateIMUData()
         const double *gyro_data = _mjData->sensordata + _mjModel->sensor_adr[gyro_sensor_id];
         for (int i(0); i < 3; i++)
         {
-            _state.imu.gyroscope[i] = gyro_data[i];
+            // _state.imu.gyroscope[i] = gyro_data[i];
+            _state.imu.gyroscope[i] = _mjData->qvel[i+3];
         }
         // printf("gyro_data: %f, %f, %f\n", gyro_data[0], gyro_data[1], gyro_data[2]);
+        printf("gyro_data: %f, %f, %f\n", _mjData->qvel[3], _mjData->qvel[4], _mjData->qvel[5]);
     }
 
     // Access quaternion
@@ -144,7 +142,7 @@ void PACTMJSimulationBridge::_UpdateIMUData()
     // Access quaternion
     for (int i(0); i < 3; i++)
     {
-        _state.imu.rpy[i] = body_rpy[i+3];
+        _state.imu.rpy[i] = body_rpy[i];
     }
 }
 
@@ -184,8 +182,11 @@ void PACTMJSimulationBridge::_UpdateControlCommand()
         jtorque_output[i] = _tau_cmd[i] + _robot_interface.kp.at(i)*(_j_cmd[i] - jpos[i]) - _robot_interface.kd.at(i) * jvel[i];
     }
 
-    // std::cout << "_j_cmd -> " << _j_cmd.transpose() << std::endl;
-    // std::cout << "_tau_cmd -> " << _tau_cmd.transpose() << std::endl;
+    std::cout << "_j_cmd -> " << _j_cmd.transpose() << std::endl;
+    std::cout << "_tau_cmd -> " << _tau_cmd.transpose() << std::endl;
+    std::cout << "jtorque_output -> " << jtorque_output.transpose() << std::endl;
+
+    std::cout << "------------------------------------------------" << std::endl;
 
     for (int i = 0; i < _num_acts; ++i)
     {
@@ -451,6 +452,8 @@ void PACTMJSimulationBridge::StartControl()
         }
     }
 
+    _not_started = false;
+
     // prepare for start
     std::cout << "Start!" << std::endl;
     Damping();
@@ -458,6 +461,14 @@ void PACTMJSimulationBridge::StartControl()
 
 void PACTMJSimulationBridge::_runCtrl()
 {
+    
+    if (_not_started)
+    {
+        // Run a _ctrl bootup routine
+        //    waits for user-input before starting control + senters damping state
+        StartControl();
+    }
+    
     // update state
     InteprateGamePad(); 
 
@@ -507,7 +518,7 @@ void PACTMJSimulationBridge::Sitting()
 
 void PACTMJSimulationBridge::Standing()
 {
-    _ctrl->DummyCalculate(); // warmup the neural network
+    // _ctrl->DummyCalculate(); // warmup the neural network
     _state_machine.Standing(*_ctrl);
     _robot_interface.jpos_des = _ctrl->jpos_des;
 }

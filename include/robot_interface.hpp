@@ -111,6 +111,8 @@ private:
         float y = -quat.at(2);
         float z = -quat.at(3);
 
+
+
         float x2 = x * x;
         float y2 = y * y;
         float z2 = z * z;

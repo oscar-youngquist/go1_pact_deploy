@@ -6,11 +6,18 @@
 #include <fstream>
 #include <string>
 #include <deque>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <limits>
 
 #include "torch/script.h"
 #include <torch/torch.h>
 
+#include "utilities.h"
+
 #include "gamepad.hpp"
+#include "basic_controller.hpp"
 #include "robot_interface.hpp"
 #include "param/cfg_param.hpp"
 #include "../3rd_parties/unitree_legged_sdk/include/unitree_legged_sdk/unitree_legged_sdk.h"
@@ -19,52 +26,96 @@ namespace fs = std::filesystem;
 using namespace std;
 using namespace UNITREE_LEGGED_SDK;
 
-inline float clip(float value, float low_limit, float high_limit)
-{
-    if(value <= low_limit) return low_limit;
-    if(value >= high_limit) return high_limit;
-    return value;
-}
 
-class BasicUserController
-{
-public:
-    BasicUserController() {}
+// Serialize array → "JSON array string"
+template <size_t N>
+inline std::string array_to_json_string(const std::array<float, N>& arr) {
+    std::ostringstream oss;
+    oss << "\"[";
+    oss << std::setprecision(std::numeric_limits<float>::max_digits10);
 
-    virtual void loadParam() = 0;
-
-    virtual void loadPolicy() = 0;
-
-    virtual void reset(BasicRobotInterface &robot_interface, Gamepad &gamepad) = 0;
-
-    virtual void GetInput(BasicRobotInterface &robot_interface, Gamepad &gamepad) = 0;
-
-    virtual void DummyCalculate() = 0;
-
-    virtual void Calculate() = 0;
-
-    virtual std::vector<float> GetLog() = 0;
-
-    void save_jpos(BasicRobotInterface &robot_interface)
-    {
-        std::copy(robot_interface.jpos.begin(), robot_interface.jpos.end(), start_pos.begin());
+    for (size_t i = 0; i < N; ++i) {
+        oss << arr[i];
+        if (i + 1 < N) {
+            oss << ", ";
+        }
     }
 
-    float dt;
-    float stand_kp;
-    float stand_kd;
-    float ctrl_kp;
-    float ctrl_kd;
-    std::array<float, 12> start_pos;
-    std::array<float, 12> stand_pos;
-    std::array<float, 12> jpos_des;
-    std::array<float, 12> jtau_des;
-    std::array<float, 12> jvel_des;
-    std::array<float, 12> sit_pos;
-    std::array<float, 12> jpos_lim_min;
-    std::array<float, 12> jpos_lim_max;
-    std::array<float, 12> jtau_lim;
-};
+    oss << "]\"";
+    return oss.str();
+}
+
+// Check if file exists and is empty
+inline bool file_is_empty(const std::string& filename) {
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+    return !file.is_open() || file.tellg() == 0;
+}
+
+// 5 vectors - 
+// q_des (12), q_act (12), tau_ff (12), tau_pd (12), applied_torque (12), obs (57), obs-hist (57*10)
+inline void write_vectors_to_csv(
+    const std::string& filename,
+    const std::array<float, 12>& v1,
+    const std::array<float, 12>& v2,
+    const std::array<float, 12>& v3,
+    const std::array<float, 12>& v4,
+    const std::array<float, 12>& v5,
+    const std::array<float, 57>& v6,
+    const std::array<float, 570>& v7,
+    const std::vector<std::string>& headers = {}
+) {
+    bool write_header = file_is_empty(filename);
+
+    std::ofstream file(filename, std::ios::app);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file\n";
+        return;
+    }
+
+    // Write header only once (on new/empty file)
+    if (write_header && !headers.empty()) {
+        for (size_t i = 0; i < headers.size(); ++i) {
+            file << headers[i];
+            if (i + 1 < headers.size()) {
+                file << ",";
+            }
+        }
+        file << "\n";
+    }
+
+    // Write row
+    file << array_to_json_string(v1) << ","
+         << array_to_json_string(v2) << ","
+         << array_to_json_string(v3) << ","
+         << array_to_json_string(v4) << ","
+         << array_to_json_string(v5) << ","
+         << array_to_json_string(v6) << ","
+         << array_to_json_string(v7) << "\n";
+}
+
+
+// Print std::array
+template <typename T, size_t N>
+void print_array(const std::string& name, const std::array<T, N>& arr) {
+    std::cout << name << " [";
+    for (size_t i = 0; i < N; ++i) {
+        std::cout << arr[i];
+        if (i + 1 < N) std::cout << ", ";
+    }
+    std::cout << "]\n";
+}
+
+// Print std::vector
+template <typename T>
+void print_vector(const std::string& name, const std::vector<T>& vec) {
+    std::cout << name << " [";
+    for (size_t i = 0; i < vec.size(); ++i) {
+        std::cout << vec[i];
+        if (i + 1 < vec.size()) std::cout << ", ";
+    }
+    std::cout << "]\n";
+}
 
 class PACTController : public BasicUserController
 {
@@ -99,9 +150,6 @@ public:
         action_alpha_pos = cfg.ema_alpha_pos;
         action_alpha_tau = cfg.ema_alpha_tau;
 
-        std::cout << "pact_controller-action_alpha_pos - " << action_alpha_pos << std::endl;
-        std::cout << "pact_controller-action_alpha_tau - " << action_alpha_tau << std::endl;
-
         obs_clip = cfg.clip_obs;
         act_clip = cfg.clip_actions;
         
@@ -122,6 +170,42 @@ public:
             jpos_lim_max.at(i) = cfg.pos_limit_max.at(i);
             jtau_lim.at(i) = cfg.tau_limit.at(i);
         }
+
+
+        std::cout << "\n===== OBS META =====\n";
+        std::cout << "frame_stack: " << frame_stack << "\n";
+        std::cout << "num_single_obs: " << num_single_obs << "\n";
+
+        std::cout << "\n===== NORMALIZATION =====\n";
+        std::cout << "lin_vel_scale: " << lin_vel_scale << "\n";
+        std::cout << "ang_vel_scale: " << ang_vel_scale << "\n";
+        std::cout << "dof_pos_scale: " << dof_pos_scale << "\n";
+        std::cout << "dof_vel_scale: " << dof_vel_scale << "\n";
+
+        std::cout << "\n===== CONTROL =====\n";
+        std::cout << "pos_action_scale: " << pos_action_scale << "\n";
+        std::cout << "tau_action_scale: " << tau_action_scale << "\n";
+        std::cout << "obs_clip: " << obs_clip << "\n";
+        std::cout << "act_clip: " << act_clip << "\n";
+
+        std::cout << "\n===== ADDITIONAL PARAMS =====\n";
+        std::cout << "dt: " << dt << "\n";
+        std::cout << "stand_kp: " << stand_kp << "\n";
+        std::cout << "stand_kd: " << stand_kd << "\n";
+        std::cout << "ctrl_kp: " << ctrl_kp << "\n";
+        std::cout << "ctrl_kd: " << ctrl_kd << "\n";
+        std::cout << "action_alpha_pos: " << action_alpha_pos << "\n";
+        std::cout << "action_alpha_tau: " << action_alpha_tau << "\n";
+        std::cout << "policy_name: " << policy_name << "\n";
+
+        std::cout << "\n===== JOINT LIMITS / TARGETS =====\n";
+        print_array("jpos_lim_min", jpos_lim_min);
+        print_array("jpos_lim_max", jpos_lim_max);
+        print_array("jtau_lim", jtau_lim);
+
+        std::cout << "=================================\n";
+
+
         // initialize history observation buffer
         // prepare history buffers
         single_step_obs.resize(num_single_obs);
@@ -175,7 +259,7 @@ public:
         std::copy(robot_interface.gyro.begin(), robot_interface.gyro.end(), base_ang_vel.begin());
         std::copy(robot_interface.projected_gravity.begin(), robot_interface.projected_gravity.end(), projected_gravity.begin());
         // record command
-        cmd.at(0) = gamepad.ly; // linear_x: [-1,1]
+        cmd.at(0) = -gamepad.ly; // linear_x: [-1,1]
         cmd.at(1) = -gamepad.lx; // linear_y; [-1,1]
         cmd.at(2) = -gamepad.rx; // angular_z: [-1,1]
         
@@ -205,7 +289,7 @@ public:
             single_step_obs.at(i) = 0.0;
         }
         history_obs.pop_front();
-        history_obs.push_back(last_obs);
+        history_obs.push_back(single_step_obs);
         torch::Tensor obs_tensor = torch::zeros({1, num_single_obs});
         for(int i = 0; i < num_single_obs; i++)
             obs_tensor[0][i] = single_step_obs.at(i);
@@ -232,11 +316,18 @@ public:
         // std::cout << "single_step_obs - " << single_step_obs << std::endl;
         // put current observation into history buffer
         history_obs.pop_front();
-        history_obs.push_back(last_obs);
+        history_obs.push_back(single_step_obs);
+
+        std::array<float, 57> obs_;
+        std::array<float, 570> obs_hist_;
+
         
         torch::Tensor obs_tensor = torch::zeros({1, num_single_obs});
         for(int i = 0; i < num_single_obs; i++)
+        {
             obs_tensor[0][i] = single_step_obs.at(i);
+            obs_.at(i) = single_step_obs.at(i);
+        }
 
         torch::Tensor obs_his_tensor = torch::zeros({1, frame_stack*num_single_obs});
         for(int i = 0; i < frame_stack; ++i)
@@ -244,6 +335,7 @@ public:
             for(int j = 0; j < num_single_obs; ++j)
             {
                 obs_his_tensor[0][i*num_single_obs + j] = history_obs.at(i).at(j);
+                obs_hist_.at(i*num_single_obs + j) = history_obs.at(i).at(j);
             }
         }
         
@@ -253,44 +345,71 @@ public:
         
         torch::Tensor policy_output_tensor = policy.get_method("act_inference")(policy_input).toTensor();
         
-        // Initialize EMA on first call
-        if (!ema_initialized)
-        {
-            for (int i = 0; i < 24; ++i)
-                action_ema[i] = policy_output_tensor[0][i].item<float>();
-            ema_initialized = true;
-        }
-        else
-        {
-            for (int i = 0; i < 12; ++i)
-            {
-                float raw_pos = policy_output_tensor[0][i].item<float>();
-                action_ema[i] = action_alpha_pos * raw_pos + (1.0f - action_alpha_pos) * action_ema[i];
-                pos_actions.at(i) = clip(raw_pos, -act_clip, act_clip);
+        // // Initialize EMA on first call
+        // if (!ema_initialized)
+        // {
+        //     for (int i = 0; i < 24; ++i)
+        //         action_ema[i] = policy_output_tensor[0][i].item<float>();
+        //     ema_initialized = true;
+        // }
+        // else
+        // {
+        //     for (int i = 0; i < 12; ++i)
+        //     {
+        //         float raw_pos = policy_output_tensor[0][i].item<float>();
+        //         action_ema[i] = action_alpha_pos * raw_pos + (1.0f - action_alpha_pos) * action_ema[i];
+        //         pos_actions.at(i) = coerce(raw_pos, -act_clip, act_clip);
 
-                float raw_tau = policy_output_tensor[0][i+12].item<float>();
-                action_ema[i+12] = action_alpha_tau * raw_tau + (1.0f - action_alpha_tau) * action_ema[i+12];
-                tau_actions.at(i) = clip(raw_tau, -act_clip, act_clip);
-            }
-        }
-
-        
+        //         float raw_tau = policy_output_tensor[0][i+12].item<float>();
+        //         action_ema[i+12] = action_alpha_tau * raw_tau + (1.0f - action_alpha_tau) * action_ema[i+12];
+        //         tau_actions.at(i) = coerce(raw_tau, -act_clip, act_clip);
+        //     }
+        // }        
         std::array<float, 12> temp_tau_actions;
         std::array<float, 12> temp_pos_actions;
         std::array<float, 12> pos_actions_scaled;
+        // // Clip the raw action prediction and the resulting joint pose/torque targets
+        // for(int i = 0; i < 12; ++i)
+        // {
+        //     // pos_actions.at(i) = coerce(policy_output_tensor[0][i].item<float>(), -act_clip, act_clip);
+        //     temp_pos_actions.at(i) = coerce(action_ema[i], -act_clip, act_clip);
+        //     pos_actions_scaled.at(i) = temp_pos_actions.at(i) * pos_action_scale;
+        //     jpos_des.at(i) = coerce(pos_actions_scaled.at(i) + stand_pos.at(i), jpos_lim_min.at(i), jpos_lim_max.at(i));
 
-        // Clip the raw action prediction and the resulting joint pose/torque targets
+        //     // tau_actions.at(i) = coerce(policy_output_tensor[0][i+12].item<float>(), -act_clip, act_clip);
+        //     temp_tau_actions.at(i) = coerce(action_ema[i+12], -act_clip, act_clip);
+        //     jtau_des.at(i) = coerce(temp_tau_actions.at(i) * tau_action_scale, -jtau_lim.at(i), jtau_lim.at(i));
+        // }
+    
         for(int i = 0; i < 12; ++i)
         {
-            // pos_actions.at(i) = clip(policy_output_tensor[0][i].item<float>(), -act_clip, act_clip);
-            temp_pos_actions.at(i) = clip(action_ema[i], -act_clip, act_clip);
-            pos_actions_scaled.at(i) = temp_pos_actions.at(i) * pos_action_scale;
-            jpos_des.at(i) = clip(pos_actions_scaled.at(i) + stand_pos.at(i), jpos_lim_min.at(i), jpos_lim_max.at(i));
+            pos_actions.at(i) = coerce(policy_output_tensor[0][i].item<float>(), -act_clip, act_clip);
+            pos_actions_scaled.at(i) = pos_actions.at(i) * pos_action_scale;
+            // temp_pos_actions.at(i) = coerce(action_ema[i], -act_clip, act_clip);
+            // pos_actions_scaled.at(i) = temp_pos_actions.at(i) * pos_action_scale;
+            jpos_des.at(i) = coerce(pos_actions_scaled.at(i) + stand_pos.at(i), jpos_lim_min.at(i), jpos_lim_max.at(i));
 
-            // tau_actions.at(i) = clip(policy_output_tensor[0][i+12].item<float>(), -act_clip, act_clip);
-            temp_tau_actions.at(i) = clip(action_ema[i+12], -act_clip, act_clip);
-            jtau_des.at(i) = clip(temp_tau_actions.at(i) * tau_action_scale, -jtau_lim.at(i), jtau_lim.at(i));
+            // jpos_des.at(i) = coerce(jpos_des.at(i), ((ctrl_kd*jvel.at(i) - q_des_tau_lim[i]) / ctrl_kp) + (jpos_processed.at(i) + stand_pos.at(i)), ((ctrl_kd*jvel.at(i) + q_des_tau_lim[i]) / ctrl_kp) + (jpos_processed.at(i) + stand_pos.at(i)));
+
+            tau_actions.at(i) = coerce(policy_output_tensor[0][i+12].item<float>(), -act_clip, act_clip);
+            jtau_des.at(i) = coerce(tau_actions.at(i) * tau_action_scale, -jtau_lim.at(i), jtau_lim.at(i));
+            // temp_tau_actions.at(i) = coerce(action_ema[i+12], -act_clip, act_clip);
+            // jtau_des.at(i) = coerce(temp_tau_actions.at(i) * tau_action_scale, -jtau_lim.at(i), jtau_lim.at(i));
         }
+
+
+        std::array<float, 12> temp_jpos;
+        std::array<float, 12> pd_tau;
+        std::array<float, 12> total_tau;
+        
+        for (int i = 0; i < 12; i++)
+        {
+            temp_jpos.at(i) = jpos_processed.at(i) + stand_pos.at(i);
+            pd_tau.at(i) = ctrl_kp * (jpos_des.at(i) - (jpos_processed.at(i) + stand_pos.at(i))) - ctrl_kd * jvel.at(i);
+            total_tau.at(i) = jtau_des.at(i) + pd_tau.at(i);
+        }
+
+
         // for(int i = 0; i < 12; ++i)
         // {
         //     actions.at(i) = policy_output_tensor[0][i].item<float>();
@@ -315,6 +434,9 @@ public:
             std::cout << element << " ";
         }
         std::cout << std::endl;
+
+        write_vectors_to_csv("mujoco_standing_log.csv", temp_jpos, jpos_des, jtau_des, pd_tau, total_tau, obs_, obs_hist_, {"q_desired", "q_actual", "ff_torque", "pd_torque", "total_torque", "obs", "obs_history"});
+
 
         std::cout << "-------------------------------------------" << std::endl;
     }
@@ -353,6 +475,8 @@ public:
             // 'RL_thigh_joint',
             // 'RL_calf_joint',]
     uint16_t r2s_index_map[12] = {3, 4, 5, 0, 1, 2, 9, 10, 11, 6, 7, 8};
+
+    float q_des_tau_lim[12] = {20.0, 20.0, 30.0, 20.0, 20.0, 30.0, 20.0, 20.0, 30.0, 20.0, 20.0, 30.0};
 
     std::string config_file_name;
     
@@ -403,20 +527,20 @@ private:
         // save last observation
         std::copy(single_step_obs.begin(), single_step_obs.end(), last_obs.begin());
         // update current observation
-        single_step_obs.at(0) = clip(cmd.at(0) * lin_vel_scale, -obs_clip, obs_clip);
-        single_step_obs.at(1) = clip(cmd.at(1) * lin_vel_scale, -obs_clip, obs_clip);
-        single_step_obs.at(2) = clip(cmd.at(2) * ang_vel_scale, -obs_clip, obs_clip); // 3
+        single_step_obs.at(0) = coerce(cmd.at(0) * lin_vel_scale, -obs_clip, obs_clip);
+        single_step_obs.at(1) = coerce(cmd.at(1) * lin_vel_scale, -obs_clip, obs_clip);
+        single_step_obs.at(2) = coerce(cmd.at(2) * ang_vel_scale, -obs_clip, obs_clip); // 3
         for(int i = 0; i < 3; ++i)
         {
-            single_step_obs.at(i+3) = clip(projected_gravity.at(i), -obs_clip, obs_clip);
-            single_step_obs.at(i+6) = clip(base_ang_vel.at(i) * ang_vel_scale, -obs_clip, obs_clip);
+            single_step_obs.at(i+3) = coerce(projected_gravity.at(i), -obs_clip, obs_clip);
+            single_step_obs.at(i+6) = coerce(base_ang_vel.at(i) * ang_vel_scale, -obs_clip, obs_clip);
         }                                                  // 6, 9
         for(int i = 0; i < 12; ++i)
         {
-            single_step_obs.at(i+9) = clip(jpos_processed.at(i) * dof_pos_scale, -obs_clip, obs_clip);
-            single_step_obs.at(i+21) = clip(jvel.at(i) * dof_vel_scale, -obs_clip, obs_clip);
-            single_step_obs.at(i+33) = clip(pos_actions.at(i), -obs_clip, obs_clip);
-            single_step_obs.at(i+45) = clip(tau_actions.at(i), -obs_clip, obs_clip);
+            single_step_obs.at(i+9)  = coerce(jpos_processed.at(i) * dof_pos_scale, -obs_clip, obs_clip);
+            single_step_obs.at(i+21) = coerce(jvel.at(i) * dof_vel_scale, -obs_clip, obs_clip);
+            single_step_obs.at(i+33) = coerce(pos_actions.at(i), -obs_clip, obs_clip);
+            single_step_obs.at(i+45) = coerce(tau_actions.at(i), -obs_clip, obs_clip);
         }                                                  // 21, 33, 45, 57
     }
 };
