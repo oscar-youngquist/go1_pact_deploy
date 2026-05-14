@@ -11,6 +11,7 @@
 #include <torch/torch.h>
 
 #include "gamepad.hpp"
+#include "basic_controller.hpp"
 #include "robot_interface.hpp"
 #include "param/cfg_param.hpp"
 #include "../3rd_parties/unitree_legged_sdk/include/unitree_legged_sdk/unitree_legged_sdk.h"
@@ -25,46 +26,6 @@ float clip(float value, float low_limit, float high_limit)
     if(value >= high_limit) return high_limit;
     return value;
 }
-
-class BasicUserController
-{
-public:
-    BasicUserController() {}
-
-    virtual void loadParam() = 0;
-
-    virtual void loadPolicy() = 0;
-
-    virtual void reset(BasicRobotInterface &robot_interface, Gamepad &gamepad) = 0;
-
-    virtual void GetInput(BasicRobotInterface &robot_interface, Gamepad &gamepad) = 0;
-
-    virtual void DummyCalculate() = 0;
-
-    virtual void Calculate() = 0;
-
-    virtual std::vector<float> GetLog() = 0;
-
-    void save_jpos(BasicRobotInterface &robot_interface)
-    {
-        std::copy(robot_interface.jpos.begin(), robot_interface.jpos.end(), start_pos.begin());
-    }
-
-    float dt;
-    float stand_kp;
-    float stand_kd;
-    float ctrl_kp;
-    float ctrl_kd;
-    std::array<float, 12> start_pos;
-    std::array<float, 12> stand_pos;
-    std::array<float, 12> jpos_des;
-    std::array<float, 12> jtau_des;
-    std::array<float, 12> jvel_des;
-    std::array<float, 12> sit_pos;
-    std::array<float, 12> jpos_lim_min;
-    std::array<float, 12> jpos_lim_max;
-    std::array<float, 12> jtau_lim;
-};
 
 class PACTController : public BasicUserController
 {
@@ -99,9 +60,6 @@ public:
         action_alpha_pos = cfg.ema_alpha_pos;
         action_alpha_tau = cfg.ema_alpha_tau;
 
-        std::cout << "pact_controller-action_alpha_pos - " << action_alpha_pos << std::endl;
-        std::cout << "pact_controller-action_alpha_tau - " << action_alpha_tau << std::endl;
-
         obs_clip = cfg.clip_obs;
         act_clip = cfg.clip_actions;
         
@@ -122,6 +80,41 @@ public:
             jpos_lim_max.at(i) = cfg.pos_limit_max.at(i);
             jtau_lim.at(i) = cfg.tau_limit.at(i);
         }
+
+
+        std::cout << "\n===== OBS META =====\n";
+        std::cout << "frame_stack: " << frame_stack << "\n";
+        std::cout << "num_single_obs: " << num_single_obs << "\n";
+
+        std::cout << "\n===== NORMALIZATION =====\n";
+        std::cout << "lin_vel_scale: " << lin_vel_scale << "\n";
+        std::cout << "ang_vel_scale: " << ang_vel_scale << "\n";
+        std::cout << "dof_pos_scale: " << dof_pos_scale << "\n";
+        std::cout << "dof_vel_scale: " << dof_vel_scale << "\n";
+
+        std::cout << "\n===== CONTROL =====\n";
+        std::cout << "pos_action_scale: " << pos_action_scale << "\n";
+        std::cout << "tau_action_scale: " << tau_action_scale << "\n";
+        std::cout << "obs_clip: " << obs_clip << "\n";
+        std::cout << "act_clip: " << act_clip << "\n";
+
+        std::cout << "\n===== ADDITIONAL PARAMS =====\n";
+        std::cout << "dt: " << dt << "\n";
+        std::cout << "stand_kp: " << stand_kp << "\n";
+        std::cout << "stand_kd: " << stand_kd << "\n";
+        std::cout << "ctrl_kp: " << ctrl_kp << "\n";
+        std::cout << "ctrl_kd: " << ctrl_kd << "\n";
+        std::cout << "action_alpha_pos: " << action_alpha_pos << "\n";
+        std::cout << "action_alpha_tau: " << action_alpha_tau << "\n";
+        std::cout << "policy_name: " << policy_name << "\n";
+
+        std::cout << "\n===== JOINT LIMITS / TARGETS =====\n";
+        print_array("jpos_lim_min", jpos_lim_min);
+        print_array("jpos_lim_max", jpos_lim_max);
+        print_array("jtau_lim", jtau_lim);
+
+        std::cout << "=================================\n";
+
         // initialize history observation buffer
         // prepare history buffers
         single_step_obs.resize(num_single_obs);
@@ -199,7 +192,7 @@ public:
             single_step_obs.at(i) = 0.0;
         }
         history_obs.pop_front();
-        history_obs.push_back(last_obs);
+        history_obs.push_back(single_step_obs);
         torch::Tensor obs_tensor = torch::zeros({1, num_single_obs});
         for(int i = 0; i < num_single_obs; i++)
             obs_tensor[0][i] = single_step_obs.at(i);
@@ -226,7 +219,7 @@ public:
         // std::cout << "single_step_obs - " << single_step_obs << std::endl;
         // put current observation into history buffer
         history_obs.pop_front();
-        history_obs.push_back(last_obs);
+        history_obs.push_back(single_step_obs);
         
         torch::Tensor obs_tensor = torch::zeros({1, num_single_obs});
         for(int i = 0; i < num_single_obs; i++)
@@ -247,53 +240,56 @@ public:
         
         torch::Tensor policy_output_tensor = policy.get_method("act_inference")(policy_input).toTensor();
         
-        // Initialize EMA on first call
-        if (!ema_initialized)
-        {
-            for (int i = 0; i < 24; ++i)
-                action_ema[i] = policy_output_tensor[0][i].item<float>();
-            ema_initialized = true;
-        }
-        else
-        {
-            for (int i = 0; i < 12; ++i)
-            {
-                float raw_pos = policy_output_tensor[0][i].item<float>();
-                action_ema[i] = action_alpha_pos * raw_pos + (1.0f - action_alpha_pos) * action_ema[i];
-                pos_actions.at(i) = clip(raw_pos, -act_clip, act_clip);
+        // // Initialize EMA on first call
+        // if (!ema_initialized)
+        // {
+        //     for (int i = 0; i < 24; ++i)
+        //         action_ema[i] = policy_output_tensor[0][i].item<float>();
+        //     ema_initialized = true;
+        // }
+        // else
+        // {
+        //     for (int i = 0; i < 12; ++i)
+        //     {
+        //         float raw_pos = policy_output_tensor[0][i].item<float>();
+        //         action_ema[i] = action_alpha_pos * raw_pos + (1.0f - action_alpha_pos) * action_ema[i];
+        //         pos_actions.at(i) = clip(raw_pos, -act_clip, act_clip);
 
-                float raw_tau = policy_output_tensor[0][i+12].item<float>();
-                action_ema[i+12] = action_alpha_tau * raw_tau + (1.0f - action_alpha_tau) * action_ema[i+12];
-                tau_actions.at(i) = clip(raw_tau, -act_clip, act_clip);
-            }
-        }
+        //         float raw_tau = policy_output_tensor[0][i+12].item<float>();
+        //         action_ema[i+12] = action_alpha_tau * raw_tau + (1.0f - action_alpha_tau) * action_ema[i+12];
+        //         tau_actions.at(i) = clip(raw_tau, -act_clip, act_clip);
+        //     }
+        // }
 
         
-        std::array<float, 12> temp_tau_actions;
-        std::array<float, 12> temp_pos_actions;
-        std::array<float, 12> pos_actions_scaled;
+        // std::array<float, 12> temp_tau_actions;
+        // std::array<float, 12> temp_pos_actions;
+        // std::array<float, 12> pos_actions_scaled;
 
-        // Clip the raw action prediction and the resulting joint pose/torque targets
-        for(int i = 0; i < 12; ++i)
-        {
-            // pos_actions.at(i) = clip(policy_output_tensor[0][i].item<float>(), -act_clip, act_clip);
-            temp_pos_actions.at(i) = clip(action_ema[i], -act_clip, act_clip);
-            pos_actions_scaled.at(i) = temp_pos_actions.at(i) * pos_action_scale;
-            jpos_des.at(i) = clip(pos_actions_scaled.at(i) + stand_pos.at(i), jpos_lim_min.at(i), jpos_lim_max.at(i));
-
-            // tau_actions.at(i) = clip(policy_output_tensor[0][i+12].item<float>(), -act_clip, act_clip);
-            temp_tau_actions.at(i) = clip(action_ema[i+12], -act_clip, act_clip);
-            jtau_des.at(i) = clip(temp_tau_actions.at(i) * tau_action_scale, -jtau_lim.at(i), jtau_lim.at(i));
-        }
+        // // Clip the raw action prediction and the resulting joint pose/torque targets
         // for(int i = 0; i < 12; ++i)
         // {
-        //     actions.at(i) = policy_output_tensor[0][i].item<float>();
-        //     actions_scaled.at(i) = actions.at(i) * action_scale;
+        //     // pos_actions.at(i) = clip(policy_output_tensor[0][i].item<float>(), -act_clip, act_clip);
+        //     temp_pos_actions.at(i) = clip(action_ema[i], -act_clip, act_clip);
+        //     pos_actions_scaled.at(i) = temp_pos_actions.at(i) * pos_action_scale;
+        //     jpos_des.at(i) = clip(pos_actions_scaled.at(i) + stand_pos.at(i), jpos_lim_min.at(i), jpos_lim_max.at(i));
+
+        //     // tau_actions.at(i) = clip(policy_output_tensor[0][i+12].item<float>(), -act_clip, act_clip);
+        //     temp_tau_actions.at(i) = clip(action_ema[i+12], -act_clip, act_clip);
+        //     jtau_des.at(i) = clip(temp_tau_actions.at(i) * tau_action_scale, -jtau_lim.at(i), jtau_lim.at(i));
         // }
-        // for(int i = 0; i < 12; ++i)
-        // { 
-        //     jpos_des.at(i) = actions_scaled.at(r2s_index_map[i]) + stand_pos.at(i);
-        // }
+
+
+        for(int i = 0; i < 12; ++i)
+        {
+            pos_actions.at(i) = clip(policy_output_tensor[0][i].item<float>(), -act_clip, act_clip);
+            pos_actions_scaled.at(i) = pos_actions.at(i) * pos_action_scale;
+            jpos_des.at(i) = clip(pos_actions_scaled.at(i) + stand_pos.at(i), jpos_lim_min.at(i), jpos_lim_max.at(i));
+
+            tau_actions.at(i) = clip(policy_output_tensor[0][i+12].item<float>(), -act_clip, act_clip);
+            jtau_des.at(i) = clip(tau_actions.at(i) * tau_action_scale, -jtau_lim.at(i), jtau_lim.at(i));
+        }
+
         jvel_des.fill(0.0);
 
         // std::cout << "jpos_des: " << jpos_des << std::endl;

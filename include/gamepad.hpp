@@ -22,9 +22,8 @@ public:
         on_release = state ? false : state != pressed;
         pressed = state;
     }
-
-    bool pressed = false;    // pressed会持续
-    bool on_press = false;   // on_press和on_release都是一瞬间
+    bool pressed = false;
+    bool on_press = false;
     bool on_release = false;
 };
 
@@ -80,7 +79,7 @@ public:
     float l2 = 0.;
     float ly = 0.;
 
-    float smooth = 0.03;
+    float smooth = 0.02;
     float dead_zone = 0.01;
 
     Button R1;
