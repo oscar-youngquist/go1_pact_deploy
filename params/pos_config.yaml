@@ -1,4 +1,4 @@
-policy_name: "Mar23_16-02-32_pact_100hz_trade_no_rand.pt"
+policy_name: "Apr02_13-53-12_pact_pos_100hz_spec_jointrand_ite-1.pt"
 
 dt: 0.01
 
@@ -22,19 +22,21 @@ dof_vel_scale: 0.05
 clip_observations: 100.0
 clip_actions: 50.0
 
-frame_stack: 10
+frame_stack: 20
 num_single_obs: 57
+
+
 stand_pos: [
-    0.0,
+    -0.1,
     0.8,
     -1.5,
-    0.0,
+    0.1,
     0.8,
     -1.5,
-    0.0,
+    -0.1,
     1.0,
     -1.5,
-    0.0,
+    0.1,
     1.0,
     -1.5
 ]

@@ -227,15 +227,15 @@ public:
         history_obs.pop_front();
         history_obs.push_back(single_step_obs);
 
-        std::array<float, 57> obs_;
-        std::array<float, 570> obs_hist_;
+        // std::array<float, 57> obs_;
+        // std::array<float, 570> obs_hist_;
 
         
         torch::Tensor obs_tensor = torch::zeros({1, num_single_obs});
         for(int i = 0; i < num_single_obs; i++)
         {
             obs_tensor[0][i] = single_step_obs.at(i);
-            obs_.at(i) = single_step_obs.at(i);
+            // obs_.at(i) = single_step_obs.at(i);
         }
 
         torch::Tensor obs_his_tensor = torch::zeros({1, frame_stack*num_single_obs});
@@ -244,7 +244,7 @@ public:
             for(int j = 0; j < num_single_obs; ++j)
             {
                 obs_his_tensor[0][i*num_single_obs + j] = history_obs.at(i).at(j);
-                obs_hist_.at(i*num_single_obs + j) = history_obs.at(i).at(j);
+                // obs_hist_.at(i*num_single_obs + j) = history_obs.at(i).at(j);
             }
         }
         
@@ -307,16 +307,16 @@ public:
         }
 
 
-        std::array<float, 12> temp_jpos;
-        std::array<float, 12> pd_tau;
-        std::array<float, 12> total_tau;
+        // std::array<float, 12> temp_jpos;
+        // std::array<float, 12> pd_tau;
+        // std::array<float, 12> total_tau;
         
-        for (int i = 0; i < 12; i++)
-        {
-            temp_jpos.at(i) = jpos_processed.at(i) + stand_pos.at(i);
-            pd_tau.at(i) = ctrl_kp * (jpos_des.at(i) - (jpos_processed.at(i) + stand_pos.at(i))) - ctrl_kd * jvel.at(i);
-            total_tau.at(i) = jtau_des.at(i) + pd_tau.at(i);
-        }
+        // for (int i = 0; i < 12; i++)
+        // {
+        //     temp_jpos.at(i) = jpos_processed.at(i) + stand_pos.at(i);
+        //     pd_tau.at(i) = ctrl_kp * (jpos_des.at(i) - (jpos_processed.at(i) + stand_pos.at(i))) - ctrl_kd * jvel.at(i);
+        //     total_tau.at(i) = jtau_des.at(i) + pd_tau.at(i);
+        // }
 
 
         // for(int i = 0; i < 12; ++i)
@@ -344,7 +344,7 @@ public:
         }
         std::cout << std::endl;
 
-        write_vectors_to_csv("mujoco_standing_log.csv", temp_jpos, jpos_des, jtau_des, pd_tau, total_tau, obs_, obs_hist_, {"q_desired", "q_actual", "ff_torque", "pd_torque", "total_torque", "obs", "obs_history"});
+        // write_vectors_to_csv("mujoco_standing_log.csv", temp_jpos, jpos_des, jtau_des, pd_tau, total_tau, obs_, obs_hist_, {"q_desired", "q_actual", "ff_torque", "pd_torque", "total_torque", "obs", "obs_history"});
 
 
         std::cout << "-------------------------------------------" << std::endl;
