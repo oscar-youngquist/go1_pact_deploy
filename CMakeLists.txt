@@ -26,6 +26,8 @@ set(headers
     ${CMAKE_CURRENT_SOURCE_DIR}/src/MujocoSimulationBridge.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/joystick/joystick.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PACTMJSimulationBridge.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/observers/LinearKFObserver.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/observers/forward_kinematics.h
 )
 
 set(sources
@@ -33,6 +35,7 @@ set(sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/MujocoSimulationBridge.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/joystick/joystick.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PACTMJSimulationBridge.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/observers/LinearKFObserver.cpp
 )
 
 add_library(go1_system SHARED ${headers} ${sources})
@@ -41,6 +44,7 @@ target_include_directories(go1_system
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/observers
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/3rd_parties/unitree_legged_sdk/include
         ${TORCH_INCLUDE_DIRS}

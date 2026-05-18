@@ -332,22 +332,21 @@ public:
 
         // std::cout << "jpos_des: " << jpos_des << std::endl;
         // std::cout << "jtau_des: " << jtau_des << std::endl;
-        std::cout << "jpos_des elements: ";
-        for (const auto& element : jpos_des) {
-            std::cout << element << " ";
-        }
-        std::cout << std::endl;
-        // 
-        std::cout << "jtau_des elements: ";
-        for (const auto& element : jtau_des) {
-            std::cout << element << " ";
-        }
-        std::cout << std::endl;
+        // std::cout << "jpos_des elements: ";
+        // for (const auto& element : jpos_des) {
+        //     std::cout << element << " ";
+        // }
+        // std::cout << std::endl;
+        // // 
+        // std::cout << "jtau_des elements: ";
+        // for (const auto& element : jtau_des) {
+        //     std::cout << element << " ";
+        // }
+        // std::cout << std::endl;
 
         // write_vectors_to_csv("mujoco_standing_log.csv", temp_jpos, jpos_des, jtau_des, pd_tau, total_tau, obs_, obs_hist_, {"q_desired", "q_actual", "ff_torque", "pd_torque", "total_torque", "obs", "obs_history"});
 
-
-        std::cout << "-------------------------------------------" << std::endl;
+        // std::cout << "-------------------------------------------" << std::endl;
     }
     std::vector<float> GetLog()
     {

@@ -3,6 +3,7 @@
 #include <Configuration.h>
 #include "utilities.h"
 #include <orientation_tools.h>
+#include <iomanip>
 
 
 using namespace std;
@@ -16,7 +17,29 @@ PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_fil
     std::string param_folder = THIS_COM"go1_pact_deploy/params";
     fs::path param = fs::current_path() / param_folder;
     std::string ctrl_config_file_path = param / _config_file;
+    ParamHandler ctrl_config_handler(ctrl_config_file_path);
+    ctrl_config_handler.getBoolean("use_kalman_filter", _use_torso_estimator);
 
+    if (_ctrl_type == "pact")
+    {
+        const PACTRLCfg cfg(ctrl_config_file_path);
+        if (cfg.command_limit_max_abs.size() >= 3)
+        {
+            _gamepad.setCommandLimits({cfg.command_limit_max_abs[0],
+                                       cfg.command_limit_max_abs[1],
+                                       cfg.command_limit_max_abs[2]});
+        }
+    }
+    else
+    {
+        const PosRLCfg cfg(ctrl_config_file_path);
+        if (cfg.command_limit_max_abs.size() >= 3)
+        {
+            _gamepad.setCommandLimits({cfg.command_limit_max_abs[0],
+                                       cfg.command_limit_max_abs[1],
+                                       cfg.command_limit_max_abs[2]});
+        }
+    }
 
     if (_ctrl_type == "pact")
     { 
@@ -26,9 +49,6 @@ PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_fil
     {
         _ctrl = new PosController(ctrl_config_file_path);
     }
-
-    // run simulation before run controller
-    _ctrl_time += _getCtrlDt();
 
     _pd_time = 0.0;
 
@@ -47,11 +67,31 @@ PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_fil
     // Load the actual model/policy trained weights
     _ctrl->loadPolicy();
 
+    if (_use_torso_estimator)
+    {
+        const fs::path estimator_config =
+            fs::current_path() / THIS_COM"go1_pact_deploy/observers/params/summer-estimator-parameters.yaml";
+        _torso_estimator = std::make_unique<LinearKFObserver<float>>(
+            _mjData,
+            estimator_config.string(),
+            static_cast<float>(_mjModel->opt.timestep),
+            &_torso_estimator_sensor_data);
+    }
+
+    // run simulation before run controller
+    _ctrl_time += _getCtrlDt();
+
+    std::cout << "[PACTMJSimulationBridge] Kalman filter "
+              << (_use_torso_estimator ? "enabled" : "disabled") << std::endl;
     printf("[Summer Mujoco Simulation Bridge] Constructed\n");
 }
 
 void PACTMJSimulationBridge::_onestep_forward()
 {
+    _UpdateIMUData();
+    _UpdateTouchData();
+    _UpdateTorsoEstimator();
+
     if (_mjData->time >= _ctrl_time)
     {
         _ctrl_time += _getCtrlDt();
@@ -65,9 +105,9 @@ void PACTMJSimulationBridge::_onestep_forward()
         {
             _updated_command = true;
         }
-        std::cout << "stepping ctrl" << std::endl;
-        std::cout << "_mjData->time: " << _mjData->time << std::endl;
-        std::cout << "_ctrl_time: " << _ctrl_time << std::endl;
+        // std::cout << "stepping ctrl" << std::endl;
+        // std::cout << "_mjData->time: " << _mjData->time << std::endl;
+        // std::cout << "_ctrl_time: " << _ctrl_time << std::endl;
     }
 
     if (_mjData->time >= _pd_time && _updated_command)
@@ -124,8 +164,8 @@ void PACTMJSimulationBridge::_UpdateIMUData()
         for (int i(0); i < 3; i++)
         {
             _state.imu.accelerometer[i] = acc_data[i];
+            _torso_estimator_sensor_data.imu_acc[i] = acc_data[i];
         }
-        printf("acc_sensor_id: %d, gyro_sensor_id: %d\n", acc_sensor_id, gyro_sensor_id);
     }
 
     // Access gyro data
@@ -135,10 +175,8 @@ void PACTMJSimulationBridge::_UpdateIMUData()
         for (int i(0); i < 3; i++)
         {
             _state.imu.gyroscope[i] = gyro_data[i];
-            // _state.imu.gyroscope[i] = _mjData->qvel[i+3];
+            _torso_estimator_sensor_data.imu_ang_vel[i] = gyro_data[i];
         }
-        printf("gyro_data: %f, %f, %f\n", gyro_data[0], gyro_data[1], gyro_data[2]);
-        // printf("gyro_data: %f, %f, %f\n", _mjData->qvel[3], _mjData->qvel[4], _mjData->qvel[5]);
     }
 
     // Access quaternion
@@ -158,12 +196,29 @@ void PACTMJSimulationBridge::_UpdateIMUData()
     }
 }
 
+
+void PACTMJSimulationBridge::_UpdateTouchData()
+{
+  const std::array<const char*, 4> touch_sensor_names = {
+      "touch_FR", "touch_FL", "touch_RR", "touch_RL"};
+
+  for (size_t i = 0; i < touch_sensor_names.size(); ++i)
+  {
+    const int sensor_id = mj_name2id(_mjModel, mjOBJ_SENSOR, touch_sensor_names[i]);
+    if (sensor_id != -1)
+    {
+      const double *touch_data = _mjData->sensordata + _mjModel->sensor_adr[sensor_id];
+      _torso_estimator_sensor_data.contact_foot[i] = touch_data[0];
+    }
+    else
+    {
+      _torso_estimator_sensor_data.contact_foot[i] = 0.0;
+    }
+  }
+}
+
 void PACTMJSimulationBridge::_UpdateSystemObserver()
 {
-    // Copy IMU data (acc, rpy, quat, ang. velo.) into unitree's state structure
-    _UpdateIMUData();
-
-
     // Copy joint position and velocity data into unitree's state structure
     for (int i(0); i < _num_joints; i++)
     {
@@ -173,6 +228,43 @@ void PACTMJSimulationBridge::_UpdateSystemObserver()
 
     // Now copy fom _state structure into robot_interface
     _robot_interface.SetState(_state);
+}
+
+void PACTMJSimulationBridge::_UpdateTorsoEstimator()
+{
+    if (!_torso_estimator)
+    {
+        return;
+    }
+
+    _torso_estimator->Update();
+    _torso_pos_est = _torso_estimator->GetEstimatedPosition();
+    _torso_vel_world_est = _torso_estimator->GetEstimatedVelocityWorld();
+    _torso_vel_body_est = _torso_estimator->GetEstimatedVelocityBody();
+
+    if ((_torso_estimator_debug_counter++ % 100) == 0)
+    {
+        const auto old_flags = std::cout.flags();
+        const auto old_precision = std::cout.precision();
+        const Quat<float> body_quat(_mjData->qpos[3], _mjData->qpos[4], _mjData->qpos[5], _mjData->qpos[6]);
+        const Mat3<float> Rbw = ori::quaternionToRotationMatrix(body_quat);
+        const Vec3<float> torso_vel_world_gt(_mjData->qvel[0], _mjData->qvel[1], _mjData->qvel[2]);
+        const Vec3<float> torso_vel_body_gt = Rbw * torso_vel_world_gt;
+
+        std::cout << std::fixed << std::setprecision(4);
+        std::cout << "[Torso KF] t=" << _mjData->time
+                  << " pos_gt=[" << _mjData->qpos[0] << ", " << _mjData->qpos[1] << ", " << _mjData->qpos[2]
+                  << "] pos_est=[" << _torso_pos_est[0] << ", " << _torso_pos_est[1] << ", " << _torso_pos_est[2]
+                  << "] vel_world_gt=[" << torso_vel_world_gt[0] << ", " << torso_vel_world_gt[1] << ", " << torso_vel_world_gt[2]
+                  << "] vel_world_est=[" << _torso_vel_world_est[0] << ", " << _torso_vel_world_est[1] << ", " << _torso_vel_world_est[2]
+                  << "]" << std::endl;
+        std::cout << "[Torso KF] vel_body_gt=[" << torso_vel_body_gt[0] << ", " << torso_vel_body_gt[1] << ", " << torso_vel_body_gt[2]
+                  << "] vel_body_est=[" << _torso_vel_body_est[0] << ", " << _torso_vel_body_est[1] << ", " << _torso_vel_body_est[2]
+                  << "]" << std::endl;
+
+        std::cout.flags(old_flags);
+        std::cout.precision(old_precision);
+    }
 }
 
 void PACTMJSimulationBridge::_UpdateControlCommand()
@@ -205,11 +297,10 @@ void PACTMJSimulationBridge::_UpdateControlCommand()
         }
     }
 
-    std::cout << "_j_cmd -> " << _j_cmd.transpose() << std::endl;
-    std::cout << "_tau_cmd -> " << _tau_cmd.transpose() << std::endl;
-    std::cout << "jtorque_output -> " << jtorque_output.transpose() << std::endl;
-
-    std::cout << "------------------------------------------------" << std::endl;
+    // std::cout << "_j_cmd -> " << _j_cmd.transpose() << std::endl;
+    // std::cout << "_tau_cmd -> " << _tau_cmd.transpose() << std::endl;
+    // std::cout << "jtorque_output -> " << jtorque_output.transpose() << std::endl;
+    // std::cout << "------------------------------------------------" << std::endl;
 
     for (int i = 0; i < _num_acts; ++i)
     {

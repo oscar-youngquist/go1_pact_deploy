@@ -12,6 +12,14 @@ _udp(LOWLEVEL, 8090, "192.168.123.10", 8007)
 
     std::cout << "Initilized Leg Command Struct" << std::endl;
 
+    const PACTRLCfg cfg(config_file_path);
+    if (cfg.command_limit_max_abs.size() >= 3)
+    {
+        _gamepad.setCommandLimits({cfg.command_limit_max_abs[0],
+                                   cfg.command_limit_max_abs[1],
+                                   cfg.command_limit_max_abs[2]});
+    }
+
     _ctrl = new PACTController(config_file_path); 
 
     std::cout << "Constructed Controller" << std::endl;

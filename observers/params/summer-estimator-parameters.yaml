@@ -1,0 +1,17 @@
+__collection-name__: estimator-parameters
+
+estimator_dt: 0.002
+
+foot_height_sensor_noise: 0.001
+foot_process_noise_position: 0.002
+foot_sensor_noise_position: 0.001
+foot_sensor_noise_velocity: 0.1
+imu_process_noise_position: 0.02
+imu_process_noise_velocity: 0.02
+
+go1_body_length: 0.3762
+go1_body_width: 0.0935
+go1_abad_link_length: 0.08
+go1_hip_link_length: 0.213
+go1_knee_link_length: 0.223
+go1_knee_link_y_offset: 0.0

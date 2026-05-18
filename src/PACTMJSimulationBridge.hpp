@@ -20,6 +20,7 @@
 #include "state_machine.hpp"
 #include "physics_joystick.h"
 #include "pos_controller.hpp"
+#include "../observers/LinearKFObserver.h"
 
 using namespace std;
 using namespace UNITREE_LEGGED_SDK;
@@ -103,6 +104,7 @@ class PACTMJSimulationBridge: public MujocoSimulationBridge{
 
     void _UpdateIMUData();
     void _UpdateTouchData();
+    void _UpdateTorsoEstimator();
     void _ReadConfig(const std::string& config_file);
     bool _CollisionChecking();
     
@@ -114,6 +116,13 @@ class PACTMJSimulationBridge: public MujocoSimulationBridge{
 
     std::vector<int> _good_contacts;
 
+    TorsoEstimatorSensorData _torso_estimator_sensor_data;
+    std::unique_ptr<LinearKFObserver<float>> _torso_estimator;
+    bool _use_torso_estimator = true;
+    Vec3<float> _torso_pos_est = Vec3<float>::Zero();
+    Vec3<float> _torso_vel_world_est = Vec3<float>::Zero();
+    Vec3<float> _torso_vel_body_est = Vec3<float>::Zero();
+    size_t _torso_estimator_debug_counter = 0;
 
     float _pd_time;
     float _pd_dt;
