@@ -72,8 +72,6 @@ public:
           rx = 0.0;
         }
 
-
-
         R1.update(key_data.btn.components.R1);
         L1.update(key_data.btn.components.L1);
         start.update(key_data.btn.components.start);
@@ -100,7 +98,7 @@ public:
 
     float smooth = 0.03;
     float dead_zone = 0.01;
-    std::array<float, 3> command_limits = {1.0f, 1.0f, 1.0f};
+    std::array<float, 3> command_limits = {1.0f, 0.5f, 1.0f};
 
     Button R1;
     Button L1;

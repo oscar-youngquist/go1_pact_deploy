@@ -108,10 +108,10 @@ public:
         std::cout << "action_alpha_tau: " << action_alpha_tau << "\n";
         std::cout << "policy_name: " << policy_name << "\n";
 
-        std::cout << "\n===== JOINT LIMITS / TARGETS =====\n";
-        print_array("jpos_lim_min", jpos_lim_min);
-        print_array("jpos_lim_max", jpos_lim_max);
-        print_array("jtau_lim", jtau_lim);
+        // std::cout << "\n===== JOINT LIMITS / TARGETS =====\n";
+        // print_array("jpos_lim_min", jpos_lim_min);
+        // print_array("jpos_lim_max", jpos_lim_max);
+        // print_array("jtau_lim", jtau_lim);
 
         std::cout << "=================================\n";
 
@@ -283,8 +283,8 @@ public:
         for(int i = 0; i < 12; ++i)
         {
             pos_actions.at(i) = clip(policy_output_tensor[0][i].item<float>(), -act_clip, act_clip);
-            pos_actions_scaled.at(i) = pos_actions.at(i) * pos_action_scale;
-            jpos_des.at(i) = clip(pos_actions_scaled.at(i) + stand_pos.at(i), jpos_lim_min.at(i), jpos_lim_max.at(i));
+            // pos_actions_scaled.at(i) = pos_actions.at(i) * pos_action_scale;
+            jpos_des.at(i) = clip(pos_actions.at(i) * pos_action_scale + stand_pos.at(i), jpos_lim_min.at(i), jpos_lim_max.at(i));
 
             tau_actions.at(i) = clip(policy_output_tensor[0][i+12].item<float>(), -act_clip, act_clip);
             jtau_des.at(i) = clip(tau_actions.at(i) * tau_action_scale, -jtau_lim.at(i), jtau_lim.at(i));
@@ -292,21 +292,21 @@ public:
 
         jvel_des.fill(0.0);
 
-        // std::cout << "jpos_des: " << jpos_des << std::endl;
-        // std::cout << "jtau_des: " << jtau_des << std::endl;
-        std::cout << "jpos_des elements: ";
-        for (const auto& element : jpos_des) {
-            std::cout << element << " ";
-        }
-        std::cout << std::endl;
-        // 
-        std::cout << "jtau_des elements: ";
-        for (const auto& element : jtau_des) {
-            std::cout << element << " ";
-        }
-        std::cout << std::endl;
+        // // std::cout << "jpos_des: " << jpos_des << std::endl;
+        // // std::cout << "jtau_des: " << jtau_des << std::endl;
+        // std::cout << "jpos_des elements: ";
+        // for (const auto& element : jpos_des) {
+        //     std::cout << element << " ";
+        // }
+        // std::cout << std::endl;
+        // // 
+        // std::cout << "jtau_des elements: ";
+        // for (const auto& element : jtau_des) {
+        //     std::cout << element << " ";
+        // }
+        // std::cout << std::endl;
 
-        std::cout << "-------------------------------------------" << std::endl;
+        // std::cout << "-------------------------------------------" << std::endl;
     }
     std::vector<float> GetLog()
     {
