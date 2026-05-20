@@ -11,6 +11,7 @@
 #include <fstream>
 #include <future>
 #include <algorithm>
+#include <memory>
 #include <sstream>
 
 #include "../3rd_parties/unitree_legged_sdk/include/unitree_legged_sdk/unitree_legged_sdk.h"
@@ -19,6 +20,7 @@
 #include "gamepad.hpp"
 #include "pact_controller.hpp"
 #include "state_machine.hpp"
+#include "linear_kf_observer.hpp"
 
 using namespace std;
 using namespace UNITREE_LEGGED_SDK;
@@ -61,10 +63,15 @@ class HardwareBridge
         PACTStateMachine _state_machine;
         BasicUserController* _ctrl;
         BasicRobotInterface _robot_interface;
+        std::unique_ptr<LinearKFObserver> _torso_estimator;
+        std::array<float, 3> _torso_pos_est = {0.f, 0.f, 0.f};
+        std::array<float, 3> _torso_vel_world_est = {0.f, 0.f, 0.f};
+        std::array<float, 3> _torso_vel_body_est = {0.f, 0.f, 0.f};
 
         std::mutex state_mutex, cmd_mutex;
 
         int _iter = 0;
         float _update_wbic_dt = 0.01;
         float _update_dt = 0.002;
+        std::string _config_file_path;
 };

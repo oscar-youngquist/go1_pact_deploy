@@ -5,12 +5,21 @@ using namespace std;
 using namespace UNITREE_LEGGED_SDK;
 
 HardwareBridge::HardwareBridge(std::string config_file_path):
+_config_file_path(config_file_path),
 _safe(LeggedType::Go1),
 _udp(LOWLEVEL, 8090, "192.168.123.10", 8007)
 {
     _udp.InitCmdData(_leg_cmd);
 
     std::cout << "Initilized Leg Command Struct" << std::endl;
+
+    const PACTRLCfg cfg(config_file_path);
+    if (cfg.command_limit_max_abs.size() >= 3)
+    {
+        _gamepad.setCommandLimits({cfg.command_limit_max_abs[0],
+                                   cfg.command_limit_max_abs[1],
+                                   cfg.command_limit_max_abs[2]});
+    }
 
     _ctrl = new PACTController(config_file_path); 
 
@@ -124,6 +133,15 @@ void HardwareBridge::RobotControl()
 
     {
         std::lock_guard<std::mutex> lock(state_mutex);
+        if (_torso_estimator)
+        {
+            _torso_estimator->Update(_state);
+            _torso_pos_est = _torso_estimator->GetEstimatedPosition();
+            _torso_vel_world_est = _torso_estimator->GetEstimatedVelocityWorld();
+            _torso_vel_body_est = _torso_estimator->GetEstimatedVelocityBody();
+            _robot_interface.SetTorsoEstimate(_torso_pos_est, _torso_vel_world_est, _torso_vel_body_est);
+        }
+
         _ctrl->GetInput(_robot_interface, _gamepad);
     }
 
@@ -209,6 +227,7 @@ void HardwareBridge::run(){
     std::cout << "Loaded Policy!" << std::endl;
 
     _update_wbic_dt = _ctrl->dt;
+    _torso_estimator = std::make_unique<LinearKFObserver>(_config_file_path, _update_wbic_dt);
 
     LoopFunc loop_control("control_loop",       _update_wbic_dt,    boost::bind(&HardwareBridge::RobotControl, this));
     LoopFunc loop_udpSend("udp_send",           _update_dt,      3, boost::bind(&HardwareBridge::UDPSend, this));
@@ -318,4 +337,3 @@ void HardwareBridge::UserControlStep(bool send_cmd)
     // _robot_interface.tau_ff.fill(0.0);
     // _robot_interface.jvel_des.fill(0.0);
 }
-

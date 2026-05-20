@@ -43,6 +43,15 @@ public:
             
             num_single_obs = cfg["num_single_obs"].as<int>();
             frame_stack = cfg["frame_stack"].as<int>();
+
+            if (cfg["command_limit_max_abs"])
+            {
+                command_limit_max_abs.clear();
+                for (const auto& v : cfg["command_limit_max_abs"])
+                {
+                    command_limit_max_abs.push_back(v.as<float>());
+                }
+            }
             
             for(const auto& v : cfg["stand_pos"])
             {
@@ -91,6 +100,7 @@ public:
     int num_single_obs;
     int frame_stack;
     std::string policy_name;
+    std::vector<float> command_limit_max_abs = {1.0f, 1.0f, 1.0f};
     std::vector<float> stand_pos;
     std::vector<float> sit_pos;
     std::vector<float> pos_limit_min;

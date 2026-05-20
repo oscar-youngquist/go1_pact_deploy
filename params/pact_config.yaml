@@ -1,6 +1,8 @@
 # policy_name: "May11_21-55-58_pact_100hz_spec_smartcurr_best.pt"
 policy_name: "May11_22-58-46_pact_100hz_spec_smartcurr_stricter_best.pt"
 
+command_limit_max_abs: [1.0, 1.0, 1.0]
+
 dt: 0.01
 
 ema_alpha_pos: 0.3
@@ -59,3 +61,20 @@ sit_pos: [
 joint_limit_max: [ 0.8029,  2.9660, -0.8370,  0.8029,  2.9660, -0.8370,  0.8029,  2.9660, -0.8370,  0.8029,  2.9660, -0.8370]
 joint_limit_min: [-0.8029, -0.6630, -2.7210, -0.8029, -0.6630, -2.7210, -0.8029, -0.6630,-2.7210, -0.8029, -0.6630, -2.7210]
 joint_tau_max: [25.0, 25.00, 37.0, 25.0, 25.00, 37.0, 25.0, 25.00, 37.0, 25.0, 25.00, 37.0]
+
+estimator_dt: 0.002
+
+imu_process_noise_position: 0.02
+imu_process_noise_velocity: 0.02
+foot_process_noise_position: 0.002
+foot_sensor_noise_position: 0.001
+foot_sensor_noise_velocity: 0.1
+foot_height_sensor_noise: 0.001
+foot_airbag_contact_lower: 15
+
+go1_body_length: 0.3762
+go1_body_width: 0.0935
+go1_abad_link_length: 0.08
+go1_hip_link_length: 0.213
+go1_knee_link_length: 0.223
+go1_knee_link_y_offset: 0.0

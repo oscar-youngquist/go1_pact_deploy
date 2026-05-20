@@ -20,6 +20,9 @@ public:
         tau_ff.fill(0.);
         projected_gravity.fill(0.);
         projected_gravity.at(2) = -1.0;
+        torso_pos_est.fill(0.);
+        torso_vel_world_est.fill(0.);
+        torso_vel_body_est.fill(0.);
     }
 
 
@@ -97,9 +100,19 @@ public:
         // std::cout << "-------------------------------------------" << std::endl;
     }
 
+    void SetTorsoEstimate(const std::array<float, 3> &pos,
+                          const std::array<float, 3> &vel_world,
+                          const std::array<float, 3> &vel_body)
+    {
+        torso_pos_est = pos;
+        torso_vel_world_est = vel_world;
+        torso_vel_body_est = vel_body;
+    }
+
     std::array<float, 12> jpos, jvel, tau;
     std::array<float, 4> quat;
     std::array<float, 3> rpy, gyro, projected_gravity, acc;
+    std::array<float, 3> torso_pos_est, torso_vel_world_est, torso_vel_body_est;
     std::array<float, 12> jpos_des, jvel_des, kp, kd, tau_ff;
 
 private:
