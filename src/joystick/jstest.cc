@@ -118,6 +118,7 @@
 #include <vector>
 #include <string>
 #include <iomanip>
+#include <cstdint>
 #include "joystick.h"
 
 #define GAMEPAD_TYPE 1 // 1: XBOX, 0: SWITCH

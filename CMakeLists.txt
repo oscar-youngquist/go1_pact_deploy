@@ -19,7 +19,9 @@ else()
 endif()
 
 find_package(Threads REQUIRED)
-find_package(glfw3 REQUIRED)
+if(NOT TARGET glfw)
+    find_package(glfw3 REQUIRED)
+endif()
 
 set(headers
     ${CMAKE_CURRENT_SOURCE_DIR}/src/HardwareBridge.hpp
