@@ -165,6 +165,10 @@ public:
         cmd.at(0) = gamepad.ly; // linear_x: [-1,1]
         cmd.at(1) = -gamepad.lx; // linear_y; [-1,1]
         cmd.at(2) = -gamepad.rx; // angular_z: [-1,1]
+
+        robot_interface.cmd.at(0) = gamepad.ly;
+        robot_interface.cmd.at(1) = -gamepad.lx;
+        robot_interface.cmd.at(2) = -gamepad.rx;
         
         // record robot state
         for (int i = 0; i < 12; ++i) // same index

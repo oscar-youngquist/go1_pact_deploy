@@ -6,6 +6,10 @@ command_limit_max_abs: [1.0, 0.5, 1.0]
 
 dt: 0.01
 
+log_prefix: "indoor_deploy_data/no_payload_foam"
+log_flush_count: 500
+log_loop_dt: 0.05
+
 ema_alpha_pos: 0.3
 ema_alpha_tau: 0.2
 
@@ -71,7 +75,7 @@ foot_process_noise_position: 0.002
 foot_sensor_noise_position: 0.001
 foot_sensor_noise_velocity: 0.1
 foot_height_sensor_noise: 0.001
-foot_airbag_contact_lower: 15
+foot_airbag_contact_lower: 100
 
 go1_body_length: 0.3762
 go1_body_width: 0.0935

@@ -52,6 +52,18 @@ public:
                     command_limit_max_abs.push_back(v.as<float>());
                 }
             }
+            if (cfg["log_prefix"])
+            {
+                log_prefix = cfg["log_prefix"].as<std::string>();
+            }
+            if (cfg["log_flush_count"])
+            {
+                log_flush_count = cfg["log_flush_count"].as<int>();
+            }
+            if (cfg["log_loop_dt"])
+            {
+                log_loop_dt = cfg["log_loop_dt"].as<float>();
+            }
             
             for(const auto& v : cfg["stand_pos"])
             {
@@ -100,6 +112,9 @@ public:
     int num_single_obs;
     int frame_stack;
     std::string policy_name;
+    std::string log_prefix = "pact_log";
+    int log_flush_count = 500;
+    float log_loop_dt = 0.05f;
     std::vector<float> command_limit_max_abs = {1.0f, 1.0f, 1.0f};
     std::vector<float> stand_pos;
     std::vector<float> sit_pos;

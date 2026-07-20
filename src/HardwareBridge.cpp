@@ -4,6 +4,39 @@
 using namespace std;
 using namespace UNITREE_LEGGED_SDK;
 
+namespace
+{
+template <size_t N>
+void AppendArrayHeaders(std::ostream& os, const std::string& name)
+{
+    for (size_t i = 0; i < N; ++i)
+    {
+        os << "," << name << "_" << i;
+    }
+}
+
+template <size_t N>
+void AppendArrayValues(std::ostream& os, const std::array<float, N>& values)
+{
+    for (const float value : values)
+    {
+        os << "," << value;
+    }
+}
+
+std::filesystem::path GetPackageRootFromConfig(const std::string& config_file_path)
+{
+    namespace fs = std::filesystem;
+
+    const fs::path config_path = fs::absolute(config_file_path).lexically_normal();
+    if (config_path.parent_path().filename() == "params")
+    {
+        return config_path.parent_path().parent_path();
+    }
+    return config_path.parent_path();
+}
+}
+
 HardwareBridge::HardwareBridge(std::string config_file_path):
 _config_file_path(config_file_path),
 _safe(LeggedType::Go1),
@@ -20,6 +53,10 @@ _udp(LOWLEVEL, 8090, "192.168.123.10", 8007)
                                    cfg.command_limit_max_abs[1],
                                    cfg.command_limit_max_abs[2]});
     }
+    _log_prefix = cfg.log_prefix;
+    _log_flush_count = std::max(1, cfg.log_flush_count);
+    _log_loop_dt = cfg.log_loop_dt > 0.0f ? cfg.log_loop_dt : 0.05f;
+    _log_buffer.reserve(_log_flush_count);
 
     _ctrl = new PACTController(config_file_path); 
 
@@ -122,11 +159,232 @@ void HardwareBridge::UpdateStateMachine()
     }
 }
 
+void HardwareBridge::HandleLoggingButtons()
+{
+    if (_gamepad.left.on_press)
+    {
+        StartLogging();
+    }
+    if (_gamepad.right.on_press)
+    {
+        StopLogging();
+    }
+}
+
+void HardwareBridge::StartLogging()
+{
+    if (_logging_enabled.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> log_lock(log_mutex);
+        _log_buffer.clear();
+        _log_flush_requested.store(false);
+        _log_file_ready = false;
+        if (_log_file.is_open())
+        {
+            _log_file.close();
+        }
+
+        InitializeLogFile(_log_prefix);
+        if (!_log_file_ready)
+        {
+            std::cout << "Logging requested, but log file is not ready." << std::endl;
+            return;
+        }
+
+        _log_time_zero = std::chrono::steady_clock::now();
+    }
+
+    _logging_enabled.store(true);
+    std::cout << "Started robot interface logging: " << _log_file_path << std::endl;
+}
+
+void HardwareBridge::StopLogging()
+{
+    const bool was_enabled = _logging_enabled.exchange(false);
+    if (was_enabled)
+    {
+        std::lock_guard<std::mutex> log_lock(log_mutex);
+
+        std::cout << "Stopped robot interface logging: " << _log_file_path << std::endl;
+
+        WriteBufferedLogEntries(_log_buffer);
+        _log_buffer.clear();
+        _log_file.flush();
+        _log_file.close();
+        _log_file_ready = false;
+        _log_flush_requested.store(false);
+
+        std::cout << "Finished robot interface logging: " << _log_file_path << std::endl;
+    }
+}
+
+void HardwareBridge::InitializeLogFile(const std::string& prefix)
+{
+    namespace fs = std::filesystem;
+
+    const fs::path package_root = GetPackageRootFromConfig(_config_file_path);
+    fs::path requested(prefix.empty() ? "pact_log" : prefix);
+    if (requested.is_relative())
+    {
+        requested = package_root / requested;
+    }
+    if (!requested.has_extension())
+    {
+        requested += ".csv";
+    }
+    if (requested.has_parent_path())
+    {
+        fs::create_directories(requested.parent_path());
+    }
+
+    const fs::path parent = requested.parent_path();
+    const std::string stem = requested.stem().string();
+    const std::string ext = requested.extension().string();
+
+    fs::path candidate = requested;
+    int suffix = 1;
+    while (fs::exists(candidate))
+    {
+        std::ostringstream name;
+        name << stem << "_" << std::setw(2) << std::setfill('0') << suffix << ext;
+        candidate = parent.empty() ? fs::path(name.str()) : parent / name.str();
+        ++suffix;
+    }
+
+    candidate = fs::absolute(candidate).lexically_normal();
+
+    _log_file.open(candidate, std::ios::out);
+    if (!_log_file.is_open())
+    {
+        std::cerr << "Failed to open robot interface log file: " << candidate << std::endl;
+        _log_file_ready = false;
+        return;
+    }
+
+    _log_file_path = candidate.string();
+    _log_file_ready = true;
+    WriteLogHeader();
+    std::cout << "Robot interface log file ready: " << _log_file_path << std::endl;
+}
+
+void HardwareBridge::WriteLogHeader()
+{
+    _log_file << "iter,time_sec";
+    AppendArrayHeaders<12>(_log_file, "jpos");
+    AppendArrayHeaders<12>(_log_file, "jvel");
+    AppendArrayHeaders<12>(_log_file, "tau");
+    AppendArrayHeaders<4>(_log_file, "quat");
+    AppendArrayHeaders<3>(_log_file, "rpy");
+    AppendArrayHeaders<3>(_log_file, "gyro");
+    AppendArrayHeaders<3>(_log_file, "projected_gravity");
+    AppendArrayHeaders<3>(_log_file, "acc");
+    AppendArrayHeaders<3>(_log_file, "torso_pos_est");
+    AppendArrayHeaders<3>(_log_file, "torso_vel_world_est");
+    AppendArrayHeaders<3>(_log_file, "torso_vel_body_est");
+    AppendArrayHeaders<3>(_log_file, "cmd");
+    AppendArrayHeaders<12>(_log_file, "jpos_des");
+    AppendArrayHeaders<12>(_log_file, "jvel_des");
+    AppendArrayHeaders<12>(_log_file, "kp");
+    AppendArrayHeaders<12>(_log_file, "kd");
+    AppendArrayHeaders<12>(_log_file, "tau_ff");
+    _log_file << "\n";
+}
+
+void HardwareBridge::WriteBufferedLogEntries(const std::vector<RobotLogEntry>& entries)
+{
+    if (!_log_file_ready)
+    {
+        return;
+    }
+
+    for (const RobotLogEntry& entry : entries)
+    {
+        const BasicRobotInterface& robot = entry.robot_interface;
+        _log_file << entry.iter << "," << entry.time_sec;
+        AppendArrayValues<12>(_log_file, robot.jpos);
+        AppendArrayValues<12>(_log_file, robot.jvel);
+        AppendArrayValues<12>(_log_file, robot.tau);
+        AppendArrayValues<4>(_log_file, robot.quat);
+        AppendArrayValues<3>(_log_file, robot.rpy);
+        AppendArrayValues<3>(_log_file, robot.gyro);
+        AppendArrayValues<3>(_log_file, robot.projected_gravity);
+        AppendArrayValues<3>(_log_file, robot.acc);
+        AppendArrayValues<3>(_log_file, robot.torso_pos_est);
+        AppendArrayValues<3>(_log_file, robot.torso_vel_world_est);
+        AppendArrayValues<3>(_log_file, robot.torso_vel_body_est);
+        AppendArrayValues<3>(_log_file, robot.cmd);
+        AppendArrayValues<12>(_log_file, robot.jpos_des);
+        AppendArrayValues<12>(_log_file, robot.jvel_des);
+        AppendArrayValues<12>(_log_file, robot.kp);
+        AppendArrayValues<12>(_log_file, robot.kd);
+        AppendArrayValues<12>(_log_file, robot.tau_ff);
+        _log_file << "\n";
+    }
+}
+
+void HardwareBridge::LogCurrentRobotInterface()
+{
+    if (!_logging_enabled.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
+    RobotLogEntry entry;
+    entry.iter = _iter;
+    entry.time_sec = std::chrono::duration<double>(std::chrono::steady_clock::now() - _log_time_zero).count();
+
+    {
+        std::lock_guard<std::mutex> state_lock(state_mutex);
+        entry.robot_interface = _robot_interface;
+    }
+
+    {
+        std::lock_guard<std::mutex> log_lock(log_mutex);
+        if (!_logging_enabled.load(std::memory_order_relaxed) || !_log_file_ready)
+        {
+            return;
+        }
+        _log_buffer.push_back(entry);
+    }
+}
+
+void HardwareBridge::LoggingLoop()
+{
+    std::vector<RobotLogEntry> entries;
+    const bool flush_requested = _log_flush_requested.exchange(false);
+
+    {
+        std::lock_guard<std::mutex> lock(log_mutex);
+        if (!_log_file_ready)
+        {
+            return;
+        }
+
+        if (_log_buffer.size() >= _log_flush_count || (flush_requested && !_log_buffer.empty()))
+        {
+            entries.swap(_log_buffer);
+        }
+
+        WriteBufferedLogEntries(entries);
+        if (!entries.empty() || flush_requested)
+        {
+            _log_file.flush();
+        }
+    }
+}
+
 
 void HardwareBridge::RobotControl()
 {
     // update state
     InteprateGamePad(); 
+
+    // left d-pad starts logging, right d-pad stops and flushes pending entries
+    HandleLoggingButtons();
 
     // Update the control state
     UpdateStateMachine();
@@ -165,6 +423,7 @@ void HardwareBridge::RobotControl()
     
     // update desired WB command
     updateCommand();
+    LogCurrentRobotInterface();
     _iter++;
 }
 
@@ -232,10 +491,12 @@ void HardwareBridge::run(){
     LoopFunc loop_control("control_loop",       _update_wbic_dt,    boost::bind(&HardwareBridge::RobotControl, this));
     LoopFunc loop_udpSend("udp_send",           _update_dt,      3, boost::bind(&HardwareBridge::UDPSend, this));
     LoopFunc loop_udpRecv("udp_recv",           _update_dt,      3, boost::bind(&HardwareBridge::UDPRecv, this));
+    LoopFunc loop_logging("logging_loop",       _log_loop_dt,       boost::bind(&HardwareBridge::LoggingLoop, this));
 
     // Start sending and receving data
     loop_udpSend.start();
     loop_udpRecv.start();
+    loop_logging.start();
 
     // Run a _ctrl bootup routine
     //    waits for user-input before starting control + senters damping state

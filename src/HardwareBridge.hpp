@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <memory>
 #include <sstream>
+#include <atomic>
+#include <iomanip>
 
 #include "../3rd_parties/unitree_legged_sdk/include/unitree_legged_sdk/unitree_legged_sdk.h"
 
@@ -52,6 +54,14 @@ class HardwareBridge
         void StandCallBack();
         void CtrlCallBack();
 
+        void HandleLoggingButtons();
+        void StartLogging();
+        void StopLogging();
+        void LogCurrentRobotInterface();
+        void LoggingLoop();
+        void InitializeLogFile(const std::string& prefix);
+        void WriteLogHeader();
+
 
         Safety _safe;
         UDP _udp;
@@ -69,9 +79,29 @@ class HardwareBridge
         std::array<float, 3> _torso_vel_body_est = {0.f, 0.f, 0.f};
 
         std::mutex state_mutex, cmd_mutex;
+        std::mutex log_mutex;
 
         int _iter = 0;
         float _update_wbic_dt = 0.01;
         float _update_dt = 0.002;
         std::string _config_file_path;
+
+        struct RobotLogEntry
+        {
+            int iter = 0;
+            double time_sec = 0.0;
+            BasicRobotInterface robot_interface;
+        };
+        void WriteBufferedLogEntries(const std::vector<RobotLogEntry>& entries);
+
+        std::atomic<bool> _logging_enabled{false};
+        std::atomic<bool> _log_flush_requested{false};
+        std::vector<RobotLogEntry> _log_buffer;
+        std::ofstream _log_file;
+        std::string _log_file_path;
+        std::string _log_prefix = "pact_log";
+        size_t _log_flush_count = 500;
+        float _log_loop_dt = 0.05f;
+        bool _log_file_ready = false;
+        std::chrono::steady_clock::time_point _log_time_zero = std::chrono::steady_clock::now();
 };
