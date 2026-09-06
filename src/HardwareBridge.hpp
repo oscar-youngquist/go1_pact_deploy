@@ -21,6 +21,7 @@
 #include "robot_interface.hpp"
 #include "gamepad.hpp"
 #include "pact_controller.hpp"
+#include "posistion_controller.hpp"
 #include "state_machine.hpp"
 #include "linear_kf_observer.hpp"
 

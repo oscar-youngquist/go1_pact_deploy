@@ -35,6 +35,7 @@ include_directories(
 
 
 set(headers
+  include/posistion_controller.hpp
   src/HardwareBridge.hpp)
 
 set(sources

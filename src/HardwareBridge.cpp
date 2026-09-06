@@ -58,9 +58,20 @@ _udp(LOWLEVEL, 8090, "192.168.123.10", 8007)
     _log_loop_dt = cfg.log_loop_dt > 0.0f ? cfg.log_loop_dt : 0.05f;
     _log_buffer.reserve(_log_flush_count);
 
-    _ctrl = new PACTController(config_file_path); 
+    if (cfg.ctrl_type == "pact")
+    {
+        _ctrl = new PACTController(config_file_path);
+    }
+    else if (cfg.ctrl_type == "position")
+    {
+        _ctrl = new PositionController(config_file_path);
+    }
+    else
+    {
+        throw std::invalid_argument("ctrl_type must be pact or position");
+    }
 
-    std::cout << "Constructed Controller" << std::endl;
+    std::cout << "Constructed " << cfg.ctrl_type << " controller" << std::endl;
 }
 
 void HardwareBridge::UDPRecv()

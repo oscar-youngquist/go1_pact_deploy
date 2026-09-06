@@ -14,11 +14,13 @@ public:
 class PACTRLCfg : public BaseCfg
 {
 public:
-    PACTRLCfg(const std::string &filename) : BaseCfg(filename)
+    PACTRLCfg(const std::string &filename, bool position_only = false) : BaseCfg(filename)
     {
         auto cfg = YAML::LoadFile(filename);
         try
         {
+            if (cfg["ctrl_type"]) ctrl_type = cfg["ctrl_type"].as<std::string>();
+            position_only = position_only || ctrl_type == "position";
             policy_name = cfg["policy_name"].as<std::string>();
             dt = cfg["dt"].as<float>();
             
@@ -28,7 +30,7 @@ public:
             ctrl_kd = cfg["ctrl_kd"].as<float>();
             
             pos_action_scale = cfg["pos_action_scale"].as<float>();
-            tau_action_scale = cfg["tau_action_scale"].as<float>();
+            tau_action_scale = position_only ? 0.0f : cfg["tau_action_scale"].as<float>();
             
             lin_vel_scale = cfg["lin_vel_scale"].as<float>();
             ang_vel_scale = cfg["ang_vel_scale"].as<float>();
@@ -38,7 +40,7 @@ public:
             clip_obs = cfg["clip_observations"].as<float>();
 
             ema_alpha_pos = cfg["ema_alpha_pos"].as<float>();
-            ema_alpha_tau = cfg["ema_alpha_tau"].as<float>();
+            ema_alpha_tau = position_only ? 0.0f : cfg["ema_alpha_tau"].as<float>();
 
             
             num_single_obs = cfg["num_single_obs"].as<int>();
@@ -112,6 +114,7 @@ public:
     int num_single_obs;
     int frame_stack;
     std::string policy_name;
+    std::string ctrl_type = "pact";
     std::string log_prefix = "pact_log";
     int log_flush_count = 500;
     float log_loop_dt = 0.05f;
@@ -121,4 +124,10 @@ public:
     std::vector<float> pos_limit_min;
     std::vector<float> pos_limit_max;
     std::vector<float> tau_limit;
+};
+
+class PositionRLCfg : public PACTRLCfg
+{
+public:
+    explicit PositionRLCfg(const std::string& filename) : PACTRLCfg(filename, true) {}
 };

@@ -24,7 +24,14 @@ int main(int argc, char** argv)
   
   std::string param_folder = "../params";
   fs::path param = fs::current_path() / param_folder;
-  std::string config_file_path = param / "pact_config.yaml";
+  if (argc > 2 || (argc == 2 && std::string(argv[1]) == "--help"))
+  {
+    std::cout << "Usage: pact_deploy [controller-config.yaml]" << std::endl;
+    return argc > 2 ? 1 : 0;
+  }
+  const std::string config_file_path = argc == 2
+      ? fs::absolute(argv[1]).string()
+      : (param / "pact_config.yaml").string();
 
   HardwareBridge* hardware_bridge = new HardwareBridge(config_file_path);
 
