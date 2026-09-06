@@ -71,6 +71,7 @@ class LinearKFObserver {
   T sensor_noise_pimu_rel_foot = T(0);
   T sensor_noise_vimu_rel_foot = T(0);
   T sensor_noise_zfoot = T(0);
+  T sensor_contact_lower = T(15);
 };
 
 #endif  // PROJECT_LINEARKF_OBSERVER_H

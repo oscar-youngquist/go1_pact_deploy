@@ -79,3 +79,8 @@ target_link_libraries(pact_sim
 )
 
 add_executable(jstest src/joystick/jstest.cc src/joystick/joystick.cc)
+
+# Optional checks; keep assertion checks enabled in Release builds as well.
+add_executable(pact_policy_smoke EXCLUDE_FROM_ALL tests/pact_policy_smoke.cpp)
+target_link_libraries(pact_policy_smoke PRIVATE go1_system ${UNITREE_SDK_LIB})
+target_compile_options(pact_policy_smoke PRIVATE -UNDEBUG)

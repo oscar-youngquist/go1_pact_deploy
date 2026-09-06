@@ -85,6 +85,10 @@ void LinearKFObserver<T>::setup() {
   param_handler.getValue("foot_sensor_noise_position", sensor_noise_pimu_rel_foot);
   param_handler.getValue("foot_sensor_noise_velocity", sensor_noise_vimu_rel_foot);
   param_handler.getValue("foot_height_sensor_noise", sensor_noise_zfoot);
+  param_handler.getValue("foot_airbag_contact_lower", sensor_contact_lower);
+  if (!std::isfinite(sensor_contact_lower) || sensor_contact_lower <= T(0)) {
+    sensor_contact_lower = T(15);
+  }
 }
 
 template <typename T>
@@ -149,7 +153,7 @@ void LinearKFObserver<T>::Update() {
     Vec3<T> dp_f = Rwb * (gyro.cross(p_rel) + foot_v);
 
     const T raw_contact = static_cast<T>(_sensor_data->contact_foot[leg]);
-    const T trust = std::clamp(raw_contact / T(15), T(0), T(1));
+    const T trust = std::clamp(raw_contact / sensor_contact_lower, T(0), T(1));
     const T high_suspect_number = T(100);
 
     Q.block(qindex, qindex, 3, 3) *=
