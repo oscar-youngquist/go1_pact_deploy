@@ -12,6 +12,9 @@ PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_fil
 {
     _ReadConfig(sim_config_file);
 
+    if (_ctrl_type != "pact" && _ctrl_type != "pos" && _ctrl_type != "position")
+        throw std::invalid_argument("ctrl_type must be pact, pos (legacy), or position");
+
     _joystick = std::make_unique<XBoxJoystick>(_js_device);
 
     std::string param_folder = THIS_COM"go1_pact_deploy/params";
@@ -20,9 +23,9 @@ PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_fil
     ParamHandler ctrl_config_handler(ctrl_config_file_path);
     ctrl_config_handler.getBoolean("use_kalman_filter", _use_torso_estimator);
 
-    if (_ctrl_type == "pact")
+    if (_ctrl_type == "pact" || _ctrl_type == "position")
     {
-        const PACTRLCfg cfg(ctrl_config_file_path);
+        const PACTRLCfg cfg(ctrl_config_file_path, _ctrl_type == "position");
         if (cfg.command_limit_max_abs.size() >= 3)
         {
             _gamepad.setCommandLimits({cfg.command_limit_max_abs[0],
@@ -44,6 +47,10 @@ PACTMJSimulationBridge::PACTMJSimulationBridge(const std::string &sim_config_fil
     if (_ctrl_type == "pact")
     { 
         _ctrl = new PACTController(ctrl_config_file_path);
+    }
+    else if (_ctrl_type == "position")
+    {
+        _ctrl = new PositionController(ctrl_config_file_path);
     }
     else 
     {

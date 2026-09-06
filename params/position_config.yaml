@@ -1,0 +1,63 @@
+# Set this to your exported single-head TorchScript policy in the outer models folder.
+policy_name: "position/May18_21-30-18_pos_100hz_spec_ite3000.pt"
+
+use_kalman_filter: 1
+command_limit_max_abs: [1.0, 0.5, 1.0]
+
+dt: 0.01
+
+ema_alpha_pos: 0.3
+
+stand_kp: 60.0
+stand_kd: 5.0
+
+ctrl_kp: 30.0
+ctrl_kd: 0.60
+
+pos_action_scale: 0.25
+
+lin_vel_scale: 1.0
+ang_vel_scale: 0.25
+dof_pos_scale: 1.0
+dof_vel_scale: 0.05
+
+clip_observations: 100.0
+clip_actions: 50.0
+
+frame_stack: 20
+# 45 = commands + gravity + gyro + joint offsets/velocities + previous position actions.
+# Use 57 only for an export trained with 12 trailing zero torque inputs.
+num_single_obs: 45
+stand_pos: [
+    -0.1,
+    0.8,
+    -1.5,
+    0.1,
+    0.8,
+    -1.5,
+    -0.1,
+    0.8,
+    -1.5,
+    0.1,
+    0.8,
+    -1.5
+]
+
+sit_pos: [
+    -0.0,
+    1.4,
+    -2.7,
+    0.0,
+    1.4,
+    -2.7,
+    -0.0,
+    1.4,
+    -2.7,
+    0.0,
+    1.4,
+    -2.7
+]
+
+joint_limit_max: [ 0.8029,  2.9660, -0.8370,  0.8029,  2.9660, -0.8370,  0.8029,  2.9660, -0.8370,  0.8029,  2.9660, -0.8370]
+joint_limit_min: [-0.8029, -0.6630, -2.7210, -0.8029, -0.6630, -2.7210, -0.8029, -0.6630,-2.7210, -0.8029, -0.6630, -2.7210]
+joint_tau_max: [25.0, 25.00, 37.0, 25.0, 25.00, 37.0, 25.0, 25.00, 37.0, 25.0, 25.00, 37.0]

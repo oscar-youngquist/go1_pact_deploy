@@ -13,7 +13,7 @@ public:
 class PACTRLCfg : public BaseCfg
 {
 public:
-    PACTRLCfg(const std::string &filename) : BaseCfg(filename)
+    PACTRLCfg(const std::string &filename, bool position_only = false) : BaseCfg(filename)
     {
         auto cfg = daros_YAML::LoadFile(filename);
         try
@@ -27,7 +27,7 @@ public:
             ctrl_kd  = cfg["ctrl_kd"].as<float>();
             
             pos_action_scale = cfg["pos_action_scale"].as<float>();
-            tau_action_scale = cfg["tau_action_scale"].as<float>();
+            tau_action_scale = position_only ? 0.0f : cfg["tau_action_scale"].as<float>();
             
             lin_vel_scale = cfg["lin_vel_scale"].as<float>();
             ang_vel_scale = cfg["ang_vel_scale"].as<float>();
@@ -37,7 +37,7 @@ public:
             clip_obs      = cfg["clip_observations"].as<float>();
 
             ema_alpha_pos = cfg["ema_alpha_pos"].as<float>();
-            ema_alpha_tau = cfg["ema_alpha_tau"].as<float>();
+            ema_alpha_tau = position_only ? 0.0f : cfg["ema_alpha_tau"].as<float>();
 
 
             num_single_obs = cfg["num_single_obs"].as<int>();
@@ -107,6 +107,13 @@ public:
     std::vector<float> tau_limit;
 };
 
+
+// Shares PACT's configuration, without requiring torque-head parameters.
+class PositionRLCfg : public PACTRLCfg
+{
+public:
+    explicit PositionRLCfg(const std::string& filename) : PACTRLCfg(filename, true) {}
+};
 
 class PosRLCfg : public BaseCfg
 {

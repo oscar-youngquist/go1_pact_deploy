@@ -84,3 +84,7 @@ add_executable(jstest src/joystick/jstest.cc src/joystick/joystick.cc)
 add_executable(pact_policy_smoke EXCLUDE_FROM_ALL tests/pact_policy_smoke.cpp)
 target_link_libraries(pact_policy_smoke PRIVATE go1_system ${UNITREE_SDK_LIB})
 target_compile_options(pact_policy_smoke PRIVATE -UNDEBUG)
+
+add_executable(position_controller_test EXCLUDE_FROM_ALL tests/position_controller_test.cpp)
+target_link_libraries(position_controller_test PRIVATE go1_system ${UNITREE_SDK_LIB})
+target_compile_options(position_controller_test PRIVATE -UNDEBUG -O0 -g0)

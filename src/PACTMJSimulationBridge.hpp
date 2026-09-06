@@ -20,6 +20,7 @@
 #include "state_machine.hpp"
 #include "physics_joystick.h"
 #include "pos_controller.hpp"
+#include "posistion_controller.hpp"
 #include "../observers/LinearKFObserver.h"
 
 using namespace std;

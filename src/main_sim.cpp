@@ -24,7 +24,14 @@ int main(int argc, char** argv)
 
   std::string sim_param_folder = THIS_COM"Configs";
   fs::path sim_param = fs::current_path() / sim_param_folder;
-  const std::string sim_config_file_path = sim_param / "pact_mujoco_sim_config.yaml";
+  if (argc > 2 || (argc == 2 && std::string(argv[1]) == "--help"))
+  {
+    std::cout << "Usage: pact_sim [simulation-config.yaml]" << std::endl;
+    return argc > 2 ? 1 : 0;
+  }
+  const std::string sim_config_file_path = argc == 2
+      ? fs::absolute(argv[1]).string()
+      : (sim_param / "pact_mujoco_sim_config.yaml").string();
 
   std::cout << sim_config_file_path.c_str() << std::endl;
 
