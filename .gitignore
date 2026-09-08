@@ -2,3 +2,5 @@
 models/*
 
 **deploy_data/*
+**indoor_deploy_data_pact/*
+**indoor_deploy_data_position/*

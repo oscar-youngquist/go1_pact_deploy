@@ -55,6 +55,13 @@ The hardware state machine, UDP threads, estimator, existing logging, and
 main's hardware sensor values, including the 100-count airbag contact threshold.
 Model loading and the initial forward validation happen before UDP loops start.
 
+CSV logging is available for the position controller with the same controls and
+columns as PACT. Press d-pad left to start a new log and d-pad right to stop and
+flush it. Set `log_directory` in the YAML to choose the output folder; relative
+folders resolve from the deployment repository root and absolute folders are
+accepted. `log_prefix` controls the filename, and a numeric suffix prevents an
+existing log from being overwritten.
+
 Use the existing physical-robot test procedure on the Orin. Confirm the exported
 input shapes, controller gains, joint ordering, and joystick directions during
 that validation. The existing controls are START to initialize, L1+R2 to stand,

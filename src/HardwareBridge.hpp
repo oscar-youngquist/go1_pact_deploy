@@ -101,6 +101,7 @@ class HardwareBridge
         std::ofstream _log_file;
         std::string _log_file_path;
         std::string _log_prefix = "pact_log";
+        std::string _log_directory;
         size_t _log_flush_count = 500;
         float _log_loop_dt = 0.05f;
         bool _log_file_ready = false;

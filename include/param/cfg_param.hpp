@@ -58,6 +58,10 @@ public:
             {
                 log_prefix = cfg["log_prefix"].as<std::string>();
             }
+            if (cfg["log_directory"])
+            {
+                log_directory = cfg["log_directory"].as<std::string>();
+            }
             if (cfg["log_flush_count"])
             {
                 log_flush_count = cfg["log_flush_count"].as<int>();
@@ -116,6 +120,7 @@ public:
     std::string policy_name;
     std::string ctrl_type = "pact";
     std::string log_prefix = "pact_log";
+    std::string log_directory;
     int log_flush_count = 500;
     float log_loop_dt = 0.05f;
     std::vector<float> command_limit_max_abs = {1.0f, 1.0f, 1.0f};

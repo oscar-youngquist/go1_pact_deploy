@@ -54,6 +54,7 @@ _udp(LOWLEVEL, 8090, "192.168.123.10", 8007)
                                    cfg.command_limit_max_abs[2]});
     }
     _log_prefix = cfg.log_prefix;
+    _log_directory = cfg.log_directory;
     _log_flush_count = std::max(1, cfg.log_flush_count);
     _log_loop_dt = cfg.log_loop_dt > 0.0f ? cfg.log_loop_dt : 0.05f;
     _log_buffer.reserve(_log_flush_count);
@@ -241,7 +242,16 @@ void HardwareBridge::InitializeLogFile(const std::string& prefix)
     fs::path requested(prefix.empty() ? "pact_log" : prefix);
     if (requested.is_relative())
     {
-        requested = package_root / requested;
+        fs::path log_directory(_log_directory);
+        if (log_directory.empty())
+        {
+            log_directory = package_root;
+        }
+        else if (log_directory.is_relative())
+        {
+            log_directory = package_root / log_directory;
+        }
+        requested = log_directory / requested;
     }
     if (!requested.has_extension())
     {

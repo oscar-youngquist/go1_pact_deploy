@@ -1,11 +1,19 @@
 # Model path is relative to this deployment repository's models/ directory.
 ctrl_type: "position"
-policy_name: "position/May18_21-30-18_pos_100hz_spec_ite3000.pt"
+policy_name: "position/May18_21-30-18_pos_100hz_spec_ite8000.pt"
 
 use_kalman_filter: 1
 command_limit_max_abs: [1.0, 0.5, 1.0]
 
 dt: 0.01
+
+# CSV logging uses the same d-pad controls and columns as PACT:
+# left starts a new log, right stops and flushes it.
+# Relative log directories are resolved from the deployment repository root.
+log_directory: "indoor_deploy_data_position"
+log_prefix: "position_log_8kg_offset"
+log_flush_count: 500
+log_loop_dt: 0.05
 
 ema_alpha_pos: 0.3
 
